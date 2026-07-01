@@ -135,9 +135,44 @@ def route_request(user_message: str) -> RouterDecision:
 
 # --- Dispatch / handoff ----------------------------------------------------
 
-def concierge(user_message: str, context: Optional[dict] = None) -> ConciergeResult:
-    """Full front-desk turn: route, then hand off to a specialist if needed."""
+def _result_from_reply(route: str, reply, handoff: Optional[str]) -> ConciergeResult:
+    """Map a specialist's SpecialistReply onto a ConciergeResult.
+
+    `handoff` is the router's warm intro line for a reading; it's None when the
+    user picked the practice directly (no routing happened), in which case the
+    reading stands on its own.
+    """
+    if reply.status == "need_input":
+        return ConciergeResult(
+            route=route,
+            status="need_input",
+            concierge_message=reply.text,          # show the specialist's question
+            reading=None,
+            missing=reply.missing,
+        )
+    return ConciergeResult(
+        route=route,
+        status="reading",
+        concierge_message=handoff or "",           # empty for a direct practice pick
+        reading=reply.text,
+    )
+
+
+def concierge(user_message: str, context: Optional[dict] = None,
+              forced_route: Optional[str] = None) -> ConciergeResult:
+    """Full front-desk turn: route, then hand off to a specialist if needed.
+
+    `forced_route` lets the UI send the user straight to a chosen specialist
+    (the Tarot/Zodiac/Bazi cards) and skip the router. When it isn't a known
+    specialist (e.g. the "cosmic" card, or None), the router decides as usual.
+    """
     context = context or {}
+
+    # Direct practice pick from the UI -> skip the router entirely.
+    if forced_route in SPECIALISTS:
+        reply = SPECIALISTS[forced_route](user_message, context)
+        return _result_from_reply(forced_route, reply, handoff=None)
+
     decision = route_request(user_message)
 
     # clarify and out_of_scope never reach a specialist. For these the status
@@ -167,20 +202,7 @@ def concierge(user_message: str, context: Optional[dict] = None) -> ConciergeRes
     # request for more input. Map the two onto a ConciergeResult so the app can
     # switch on `status` and memory can log only completed readings.
     reply = specialist(user_message, context)
-    if reply.status == "need_input":
-        return ConciergeResult(
-            route=decision.route,
-            status="need_input",
-            concierge_message=reply.text,          # show the specialist's question
-            reading=None,
-            missing=reply.missing,
-        )
-    return ConciergeResult(
-        route=decision.route,
-        status="reading",
-        concierge_message=decision.message_to_user,  # the router's warm handoff line
-        reading=reply.text,
-    )
+    return _result_from_reply(decision.route, reply, handoff=decision.message_to_user)
 
 
 # --- Quick manual test (run from repo root: python -m agents.orchestrator) --

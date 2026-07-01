@@ -1,6 +1,9 @@
 import streamlit as st
 import base64
+import uuid
 from pathlib import Path
+
+from utils.chat import handle_turn
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -86,6 +89,8 @@ PRACTICES = {
 }
 
 # ── Session state ────────────────────────────────────────────────────────────
+if "user_id" not in st.session_state:
+    st.session_state.user_id = uuid.uuid4().hex
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "active_agent" not in st.session_state:
@@ -96,6 +101,22 @@ if "selected_card" not in st.session_state:
 
 def select_practice(key: str):
     st.session_state.selected_card = key
+
+
+def _run_agent(user_message: str) -> str:
+    """Run one turn through the agent layer; degrade gracefully on error."""
+    try:
+        return handle_turn(
+            st.session_state.user_id,
+            st.session_state.active_agent,
+            user_message,
+        )
+    except Exception as e:
+        return (
+            "The cosmos is clouded for a moment — I couldn't complete that "
+            "reading. Please try again."
+            f"<br><br><span style='opacity:0.6'>({e})</span>"
+        )
 
 
 # ── Styles ───────────────────────────────────────────────────────────────────
@@ -489,16 +510,12 @@ if not st.session_state.chat_history:
             st.session_state.chat_history = [
                 {"role": "assistant", "content": practice["greeting"]},
                 {"role": "user", "content": user_text},
-                {
-                    "role": "assistant",
-                    "content": (
-                        f"The cosmos received your question: "
-                        f"<em>\"{user_text}\"</em><br><br>"
-                        "The agents are aligning the stars… "
-                        "(Agent orchestration coming soon.)"
-                    ),
-                },
             ]
+            with st.spinner("Consulting the cosmos…"):
+                reply_html = _run_agent(user_text)
+            st.session_state.chat_history.append(
+                {"role": "assistant", "content": reply_html}
+            )
             st.session_state.selected_card = None
             st.rerun()
 
@@ -539,13 +556,9 @@ else:
         st.session_state.chat_history.append(
             {"role": "user", "content": user_input}
         )
-        placeholder_reply = (
-            f"The cosmos received your question: "
-            f"<em>\"{user_input}\"</em><br><br>"
-            "The agents are aligning the stars… "
-            "(Agent orchestration coming soon.)"
-        )
+        with st.spinner("Consulting the cosmos…"):
+            reply_html = _run_agent(user_input)
         st.session_state.chat_history.append(
-            {"role": "assistant", "content": placeholder_reply}
+            {"role": "assistant", "content": reply_html}
         )
         st.rerun()
