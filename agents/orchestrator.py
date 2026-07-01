@@ -16,7 +16,7 @@ from typing import Optional
 from google.genai import types
 
 from utils.config import client, MODEL
-from utils.types import RouterDecision, ConciergeResult
+from utils.schemas import RouterDecision, ConciergeResult
 from agents.specialists import tarot, zodiac, bazi
 
 
