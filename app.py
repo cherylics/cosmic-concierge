@@ -381,6 +381,7 @@ st.markdown(
         gap: 12px;
         margin-bottom: 20px;
         animation: fadeIn 0.4s ease;
+        scroll-margin-top: 150px; /* Offset scroll position by 150px to keep clear of fixed header */
     }
     .msg-row.user { flex-direction: row-reverse; }
 
@@ -409,33 +410,7 @@ st.markdown(
     }
     .msg-bubble.assistant {
         background: #ffffff;
-        border: 1px solid #ebe8e3;
-        color: #2c2c2c !important;
-        -webkit-text-fill-color: #2c2c2c !important;
-    }
-    .msg-bubble.user {
-        background: #1a1a1a;
-        color: #f5f4f2 !important;
-        -webkit-text-fill-color: #f5f4f2 !important;
-    }
-
-    .chat-header-text {
-        font-weight: 400 !important;
-        font-size: 2rem !important;
-        letter-spacing: 0.04em;
-        color: #1a1a1a !important;
-        -webkit-text-fill-color: #1a1a1a !important;
-        margin: 0 !important;
-        text-align: center;
-    }
-    .chat-divider {
-        width: 36px;
-        height: 1px;
-        background: #c8c3bb;
-        margin: 12px auto 0 auto;
-    }
-    
-    /* Fixed header for the chat session - stays persisted during scrolling */
+        borde    /* Fixed header for the chat session - stays persisted during scrolling */
     .sticky-header-container {
         position: fixed !important;
         top: 0 !important;
@@ -443,21 +418,35 @@ st.markdown(
         right: 0 !important;
         background: #faf9f7 !important;
         z-index: 99999 !important;
-        padding: 16px 0 12px 0 !important;
-        border-bottom: 1px solid #e8e4de !important;
+        padding: 16px 0 0 0 !important;
         text-align: center !important;
         width: 100% !important;
         max-width: 900px !important;
         margin: 0 auto !important;
     }
     
+    /* Fixed navigation block directly beneath the header text */
+    .sticky-nav-block {
+        position: fixed !important;
+        top: 48px !important; /* sits directly below title */
+        left: 0 !important;
+        right: 0 !important;
+        background: #faf9f7 !important;
+        z-index: 99999 !important;
+        width: 100% !important;
+        max-width: 900px !important;
+        margin: 0 auto !important;
+        padding: 8px 0 8px 0 !important;
+        border-bottom: 1px solid #e8e4de !important;
+    }
+
     .chat-area {
         max-width: 620px;
         margin: 0 auto;
-        padding: 85px 0 40px 0 !important; /* Top padding to avoid header cutoff */
+        padding: 135px 0 40px 0 !important; /* Top padding to avoid header cutoff */
     }
 
-    /* ---------- Bottom Navigation Tray (inside stBottom, below input) ---------- */
+    /* ---------- Bottom Section (inside stBottom, holds chat input) ---------- */
     div[data-testid="stBottom"] {
         background: #faf9f7 !important;
         border-top: 1px solid #e8e4de !important;
@@ -465,11 +454,11 @@ st.markdown(
         z-index: 99999 !important;
     }
     div[data-testid="stBottomBlockContainer"] {
-        padding-bottom: 140px !important; /* Space for the bottom tray and input */
+        padding-bottom: 80px !important;
     }
 
-    /* Center columns in the bottom tray */
-    div[data-testid="stBottom"] div[data-testid="column"] {
+    /* Center columns in the sticky nav block */
+    .sticky-nav-block div[data-testid="column"] {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -477,14 +466,14 @@ st.markdown(
         position: relative !important;
     }
 
-    /* Invisible overlay button stretching over the column in the bottom tray */
-    div[data-testid="stBottom"] div[data-testid="column"] div.element-container:first-child {
+    /* Invisible overlay button stretching over the columns in the top block */
+    .sticky-nav-block div[data-testid="column"] div.element-container:first-child {
         height: 0 !important;
         margin: 0 !important;
         padding: 0 !important;
         overflow: visible !important;
     }
-    div[data-testid="stBottom"] div[data-testid="column"] button {
+    .sticky-nav-block div[data-testid="column"] button {
         position: absolute !important;
         top: 0 !important;
         left: 0 !important;
@@ -498,9 +487,9 @@ st.markdown(
         margin: 0 !important;
         padding: 0 !important;
     }
-    div[data-testid="stBottom"] div[data-testid="column"] button:hover,
-    div[data-testid="stBottom"] div[data-testid="column"] button:focus,
-    div[data-testid="stBottom"] div[data-testid="column"] button:active {
+    .sticky-nav-block div[data-testid="column"] button:hover,
+    .sticky-nav-block div[data-testid="column"] button:focus,
+    .sticky-nav-block div[data-testid="column"] button:active {
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
@@ -530,6 +519,25 @@ st.markdown(
         height: 22px !important;
         border-radius: 50% !important;
         object-fit: cover !important;
+        border: 1px solid #e8e4de !important;
+        transition: filter 0.3s ease;
+    }
+    .bottom-tab-card.grayed img {
+        filter: grayscale(100%) !important;
+        opacity: 0.6 !important;
+    }
+    .bottom-tab-card span {
+        font-family: 'Cormorant Garamond', Georgia, serif !important;
+        font-size: 1.05rem !important;
+        font-weight: 500 !important;
+        color: #3a3a3a !important;
+        -webkit-text-fill-color: #3a3a3a !important;
+        letter-spacing: 0.02em !important;
+    }
+    .bottom-tab-card.grayed span {
+        color: #8a857f !important;
+        -webkit-text-fill-color: #8a857f !important;
+    }    object-fit: cover !important;
         border: 1px solid #e8e4de !important;
         transition: filter 0.3s ease;
     }
@@ -659,16 +667,54 @@ else:
         st.session_state.active_agent, {}
     ).get("title", "Cosmic Concierge")
 
-    # Sticky persisted header
+    # Sticky persisted header text
     st.markdown(
         f"""
         <div class="sticky-header-container">
             <h1 class="chat-header-text">Cosmic Concierge · {agent_name}</h1>
-            <div class="chat-divider"></div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+    # Sticky persisted navigation block right beneath heading
+    st.markdown('<div class="sticky-nav-block">', unsafe_allow_html=True)
+    nav_cols = st.columns(4, gap="small")
+
+    # Layout Home, Tarot, Zodiac, Bazi horizontally
+    tabs = [
+        {"key": "home", "label": "Home", "img": COSMIC_B64},
+        {"key": "tarot", "label": "Tarot", "img": TAROT_B64},
+        {"key": "zodiac", "label": "Zodiac", "img": ZODIAC_B64},
+        {"key": "bazi", "label": "Bazi · 八字", "img": BAZI_B64},
+    ]
+
+    for col_idx, tab in enumerate(tabs):
+        is_active = (tab["key"] == "home" and st.session_state.active_agent is None) or (tab["key"] == st.session_state.active_agent)
+        active_cls = "active" if is_active else "grayed"
+
+        with nav_cols[col_idx]:
+            # Native invisible button overlay
+            st.button(
+                " ",
+                key=f"header_nav_{tab['key']}",
+                on_click=switch_practice,
+                args=(tab["key"],),
+                use_container_width=True,
+            )
+
+            # Styled visual card
+            st.markdown(
+                f"""
+                <div class="bottom-tab-card {active_cls}">
+                    <img src="data:image/png;base64,{tab['img']}" alt="{tab['label']}">
+                    <span>{tab['label']}</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
     ROLE_META = {
         "assistant": {"avatar": "✦", "css": "assistant"},
@@ -689,7 +735,26 @@ else:
         )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 1. Chat Input Box (renders at the top of the stBottom tray)
+    # Script to scroll to the top of the newest assistant message
+    if st.session_state.chat_history and st.session_state.chat_history[-1]["role"] == "assistant":
+        st.components.v1.html(
+            """
+            <script>
+            setTimeout(() => {
+                const doc = window.parent.document;
+                const msgRows = doc.querySelectorAll('.msg-row');
+                if (msgRows.length > 0) {
+                    const lastRow = msgRows[msgRows.length - 1];
+                    lastRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 100);
+            </script>
+            """,
+            height=0,
+            width=0,
+        )
+
+    # Chat Input Box (floats at the very bottom)
     if user_input := st.chat_input("Ask the cosmos anything …"):
         st.session_state.chat_history.append(
             {"role": "user", "content": user_input}
@@ -700,42 +765,3 @@ else:
             {"role": "assistant", "content": reply_html}
         )
         st.rerun()
-
-    # 2. Bottom navigation tray (renders below user input in the stBottom tray)
-    st.markdown('<div class="bottom-nav-container">', unsafe_allow_html=True)
-    nav_cols = st.columns(4, gap="small")
-
-    # Layout Home, Tarot, Zodiac, Bazi horizontally
-    tabs = [
-        {"key": "home", "label": "Home", "img": COSMIC_B64},
-        {"key": "tarot", "label": "Tarot", "img": TAROT_B64},
-        {"key": "zodiac", "label": "Zodiac", "img": ZODIAC_B64},
-        {"key": "bazi", "label": "Bazi · 八字", "img": BAZI_B64},
-    ]
-
-    for col_idx, tab in enumerate(tabs):
-        is_active = (tab["key"] == "home" and st.session_state.active_agent is None) or (tab["key"] == st.session_state.active_agent)
-        active_cls = "active" if is_active else "grayed"
-
-        with nav_cols[col_idx]:
-            # Native invisible button overlay
-            st.button(
-                " ",
-                key=f"bottom_nav_{tab['key']}",
-                on_click=switch_practice,
-                args=(tab["key"],),
-                use_container_width=True,
-            )
-
-            # Styled visual card
-            st.markdown(
-                f"""
-                <div class="bottom-tab-card {active_cls}">
-                    <img src="data:image/png;base64,{tab['img']}" alt="{tab['label']}">
-                    <span>{tab['label']}</span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-    st.markdown('</div>', unsafe_allow_html=True)
