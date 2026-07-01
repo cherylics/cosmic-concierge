@@ -61,3 +61,23 @@ class ConciergeResult(BaseModel):
     def is_reading(self) -> bool:
         """The one gate memory should check before calling add_reading()."""
         return self.status == "reading"
+
+
+class WeeklyReport(BaseModel):
+    """The Report agent's output: a reflection over a calendar window of readings.
+
+        status == "report" -> `text` is the generated weekly reflection
+        status == "empty"  -> no readings fell in the window; `text` is a
+                              friendly note and no model call was made
+
+    `subject`, `period_start`, and `period_end` are all derived deterministically
+    from the same window, so the header can never claim a range the filter didn't
+    actually cover.
+    """
+    status: Literal["report", "empty"]
+    subject: str
+    period_start: str          # ISO date "YYYY-MM-DD"
+    period_end: str            # ISO date "YYYY-MM-DD"
+    reading_count: int
+    routes: dict[str, int] = Field(default_factory=dict)   # e.g. {"tarot": 3, "bazi": 1}
+    text: str
