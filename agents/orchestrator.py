@@ -84,9 +84,7 @@ Respond with ONLY a JSON object, no markdown, no extra text:
 {
   "route": "tarot" | "zodiac" | "bazi" | "clarify" | "out_of_scope",
   "rationale": "one short sentence explaining your choice (for logs)",
-  "message_to_user": "what the Concierge says: a warm handoff line for a
-   specialist route, the single question for 'clarify', or the gentle
-   redirect for 'out_of_scope'"
+  "message_to_user": "what the Concierge says: for a specialist route, a warm handoff line that briefly and gently explains the reason why this specific practice (Tarot/Zodiac/Bazi) is the exact match for their situation; for 'clarify', the single question to focus them; for 'out_of_scope', the gentle redirect"
 }
 """.strip()
 

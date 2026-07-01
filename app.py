@@ -409,13 +409,24 @@ st.markdown(
         -webkit-text-fill-color: #1a1a1a !important;
         margin: 0 !important;
         text-align: center;
-        padding-top: 24px;
     }
     .chat-divider {
         width: 36px;
         height: 1px;
         background: #c8c3bb;
-        margin: 12px auto;
+        margin: 12px auto 0 auto;
+    }
+    
+    /* Sticky header for the chat session */
+    .sticky-header-container {
+        position: sticky;
+        top: 0;
+        background: #faf9f7;
+        z-index: 9999;
+        padding: 16px 0 12px 0;
+        border-bottom: 1px solid #e8e4de;
+        margin-bottom: 20px;
+        text-align: center;
     }
     </style>
     """,
@@ -527,11 +538,16 @@ else:
         st.session_state.active_agent, {}
     ).get("title", "Cosmic Concierge")
 
+    # Sticky persisted header
     st.markdown(
-        f'<h1 class="chat-header-text">Cosmic Concierge · {agent_name}</h1>',
+        f"""
+        <div class="sticky-header-container">
+            <h1 class="chat-header-text">Cosmic Concierge · {agent_name}</h1>
+            <div class="chat-divider"></div>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
-    st.markdown('<div class="chat-divider"></div>', unsafe_allow_html=True)
 
     ROLE_META = {
         "assistant": {"avatar": "✦", "css": "assistant"},
@@ -552,6 +568,44 @@ else:
         )
     st.markdown("</div>", unsafe_allow_html=True)
 
+    # ── Bottom navigation / controls ──
+    st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
+    
+    other_practices = {k: v["title"] for k, v in PRACTICES.items() if k != st.session_state.active_agent}
+    
+    nav_cols = st.columns([1.5, 2, 1.5])
+    with nav_cols[1]:
+        # Back to Home Button
+        if st.button("✦ Back to Home", key="back_home_nav", use_container_width=True):
+            st.session_state.chat_history = []
+            st.session_state.active_agent = None
+            st.session_state.selected_card = None
+            st.rerun()
+
+        # Switch Practice Selectbox
+        switch_options = ["✦ Switch practice to..."] + list(other_practices.values())
+        selected_switch = st.selectbox(
+            "Switch practice",
+            options=switch_options,
+            label_visibility="collapsed",
+            key="switch_practice_dropdown"
+        )
+        if selected_switch != "✦ Switch practice to...":
+            # Find the practice key
+            new_key = [k for k, v in other_practices.items() if v == selected_switch][0]
+            st.session_state.active_agent = new_key
+            st.session_state.selected_card = new_key
+            
+            # Start new chat with the chosen agent's greeting
+            practice = PRACTICES[new_key]
+            st.session_state.chat_history = [
+                {"role": "assistant", "content": practice["greeting"]}
+            ]
+            st.rerun()
+
+    st.markdown("<div style='height: 60px;'></div>", unsafe_allow_html=True)
+
+    # Chat Input Box (floats at the very bottom)
     if user_input := st.chat_input("Ask the cosmos anything …"):
         st.session_state.chat_history.append(
             {"role": "user", "content": user_input}
