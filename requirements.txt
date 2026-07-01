@@ -2,3 +2,4 @@ streamlit
 google-genai
 python-dotenv
 lunar_python
+markdown
