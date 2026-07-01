@@ -14,6 +14,7 @@ from google.genai import types
 
 from utils.config import client, MODEL
 from utils.persona import SHARED_RULES
+from utils.schemas import SpecialistReply
 
 SPECIALIST_NAME = "zodiac"
 
@@ -82,7 +83,7 @@ ZODIAC_PROMPT = ZODIAC_PERSONA + SHARED_RULES
 
 # --- The specialist interface (matches the stub) --------------------------
 
-def run(user_message: str, context: dict) -> str:
+def run(user_message: str, context: dict) -> SpecialistReply:
     """Read the user's chart. Called by the orchestrator.
 
     Expects birth details in context (populated by a Streamlit form or by an
@@ -94,10 +95,14 @@ def run(user_message: str, context: dict) -> str:
     # Directive 1: gather necessary data before reading.
     birth_date = _parse_birth_date(context.get("birth_date"))
     if birth_date is None:
-        return ("To read your chart, I'll need your birth details. Could you "
-                "share your **date of birth**, and — if you know them — your "
-                "**exact time of birth** and **city**? The time and place let "
-                "me go beyond your sun sign into a fuller natal picture.")
+        return SpecialistReply(
+            status="need_input",
+            text=("To read your chart, I'll need your birth details. Could you "
+                  "share your **date of birth**, and — if you know them — your "
+                  "**exact time of birth** and **city**? The time and place let "
+                  "me go beyond your sun sign into a fuller natal picture."),
+            missing=["birth_date"],
+        )
 
     sun_sign = get_sun_sign(birth_date.month, birth_date.day)
     birth_time = context.get("birth_time")
@@ -128,16 +133,18 @@ def run(user_message: str, context: dict) -> str:
             temperature=0.9,
         ),
     )
-    return response.text
+    return SpecialistReply(status="reading", text=response.text)
 
 
 # --- Quick standalone test (run from repo root) ---------------------------
 #     python -m agents.specialists.zodiac
 if __name__ == "__main__":
     # No birth data -> should ask for it
-    print(run("Why do I struggle with commitment?", {}))
+    r1 = run("Why do I struggle with commitment?", {})
+    print(f"[{r1.status}] missing={r1.missing}\n{r1.text}")
     print("\n" + "=" * 60 + "\n")
     # With birth data -> should give a reading
     ctx = {"birth_date": "1994-04-25", "birth_time": "14:30",
            "birth_place": "Taipei, Taiwan"}
-    print(run("Why do I struggle with commitment?", ctx))
+    r2 = run("Why do I struggle with commitment?", ctx)
+    print(f"[{r2.status}]\n{r2.text}")

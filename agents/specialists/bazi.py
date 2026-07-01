@@ -15,6 +15,7 @@ from lunar_python import Solar
 
 from utils.config import client, MODEL
 from utils.persona import SHARED_RULES
+from utils.schemas import SpecialistReply
 
 SPECIALIST_NAME = "bazi"
 
@@ -192,7 +193,7 @@ def _format_chart(chart: dict) -> str:
     return "\n".join(f"  {ln}" for ln in lines)
 
 
-def run(user_message: str, context: dict) -> str:
+def run(user_message: str, context: dict) -> SpecialistReply:
     """Compute the chart and return a long-term reading. Called by orchestrator.
 
     Expects in context (from a Streamlit form or an earlier turn via memory):
@@ -206,12 +207,21 @@ def run(user_message: str, context: dict) -> str:
 
     # Directive 1: gather necessary data before reading. Bazi needs date + time.
     if birth_date is None or birth_time is None:
-        return ("To cast your Four Pillars, I'll need your **exact birth date "
-                "and time** (the hour matters — it sets one of the four "
-                "pillars), and ideally your **birth city**. If you'd like your "
-                "decade luck cycles too, let me know whether to read them as "
-                "male or female — the tradition calculates their direction "
-                "from this.")
+        missing = []
+        if birth_date is None:
+            missing.append("birth_date")
+        if birth_time is None:
+            missing.append("birth_time")
+        return SpecialistReply(
+            status="need_input",
+            text=("To cast your Four Pillars, I'll need your **exact birth date "
+                  "and time** (the hour matters — it sets one of the four "
+                  "pillars), and ideally your **birth city**. If you'd like your "
+                  "decade luck cycles too, let me know whether to read them as "
+                  "male or female — the tradition calculates their direction "
+                  "from this."),
+            missing=missing,
+        )
 
     hour, minute = birth_time
     gender = _parse_gender(context.get("gender"))
@@ -245,7 +255,7 @@ def run(user_message: str, context: dict) -> str:
             temperature=0.9,
         ),
     )
-    return response.text
+    return SpecialistReply(status="reading", text=response.text)
 
 
 # --- Quick standalone test (run from repo root) ---------------------------
@@ -253,4 +263,5 @@ def run(user_message: str, context: dict) -> str:
 if __name__ == "__main__":
     ctx = {"birth_date": "1994-04-25", "birth_time": "14:30",
            "gender": "female", "birth_place": "Taipei, Taiwan"}
-    print(run("What should I focus on in my career over the next decade?", ctx))
+    reply = run("What should I focus on in my career over the next decade?", ctx)
+    print(f"[{reply.status}]\n{reply.text}")

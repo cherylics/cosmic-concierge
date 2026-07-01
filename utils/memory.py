@@ -1,14 +1,12 @@
-# memory.py - Handles passing conversation context between agents
 # utils/memory.py - long-term memory: user profiles + reading history
 import os
 import sys
 
-# Auto-execute using the virtual environment python if it exists and we aren't using it
-venv_python = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".venv", "bin", "python"))
-if os.path.exists(venv_python) and sys.executable != venv_python:
-    os.execv(venv_python, [venv_python] + sys.argv)
+# NOTE: no venv re-exec here. This module is imported by app.py, and an
+# import-time os.execv would replace the running process. Activate the venv (or
+# run via `.venv/bin/python`) instead.
 
-# Add project root to sys.path to allow running the script directly
+# Add project root to sys.path so this file can also be run/tested directly.
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)

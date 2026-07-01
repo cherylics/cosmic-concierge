@@ -2,15 +2,26 @@
 import os
 import sys
 
-# Auto-execute using the virtual environment python if it exists and we aren't using it
-venv_python = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".venv", "bin", "python"))
-if os.path.exists(venv_python) and sys.executable != venv_python:
-    os.execv(venv_python, [venv_python] + sys.argv)
-
-# Add project root to sys.path to allow running the script directly
+# Add project root to sys.path so `utils` / `agents` import cleanly whether this
+# file is run directly, run via `python -m agents.orchestrator`, or imported by
+# app.py. This is the fix for the "cannot find module 'utils'" error.
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
+
+# Convenience: when this file is executed DIRECTLY (python agents/orchestrator.py),
+# re-exec under the project venv so third-party deps (google-genai, lunar_python,
+# pydantic) resolve without manually activating it first.
+#
+# This is guarded by __name__ == "__main__" and placed BEFORE the third-party
+# imports on purpose. That guard is the whole point: an unguarded, top-level
+# os.execv fires on IMPORT too, so `from agents.orchestrator import concierge`
+# inside app.py could replace the running Streamlit process mid-import. Guarded
+# here, it only ever runs on a direct invocation, never on import.
+if __name__ == "__main__":
+    _venv_python = os.path.abspath(os.path.join(project_root, ".venv", "bin", "python"))
+    if os.path.exists(_venv_python) and sys.executable != _venv_python:
+        os.execv(_venv_python, [_venv_python] + sys.argv)
 
 from typing import Optional
 from google.genai import types
@@ -88,6 +99,13 @@ SPECIALISTS = {
     "bazi": bazi.run,
 }
 
+# The routes that never reach a specialist.
+_NON_SPECIALIST_ROUTES = ("clarify", "out_of_scope")
+
+# A single source of truth for the fallback when we can't route confidently.
+_CLARIFY_FALLBACK = ("I want to point you to the right guide — could you tell me "
+                     "a bit more about what's on your mind?")
+
 
 # --- Routing ---------------------------------------------------------------
 
@@ -111,8 +129,7 @@ def route_request(user_message: str) -> RouterDecision:
         return RouterDecision(
             route="clarify",
             rationale=f"router error: {e}",
-            message_to_user="I want to point you to the right guide — could you "
-                            "tell me a bit more about what's on your mind?",
+            message_to_user=_CLARIFY_FALLBACK,
         )
 
 
@@ -123,19 +140,46 @@ def concierge(user_message: str, context: Optional[dict] = None) -> ConciergeRes
     context = context or {}
     decision = route_request(user_message)
 
-    # clarify and out_of_scope never reach a specialist.
-    if decision.route in ("clarify", "out_of_scope"):
+    # clarify and out_of_scope never reach a specialist. For these the status
+    # IS the route ("clarify" / "out_of_scope"), and there is no reading.
+    if decision.route in _NON_SPECIALIST_ROUTES:
         return ConciergeResult(
             route=decision.route,
+            status=decision.route,
             concierge_message=decision.message_to_user,
             reading=None,
         )
 
-    reading = SPECIALISTS[decision.route](user_message, context)
+    # Defensive: RouterDecision.route SHOULD be a Literal in utils/schemas.py,
+    # which prevents any out-of-set value at the schema layer. This guard is the
+    # belt to that suspenders — if a bad route ever slips through, we degrade to
+    # a clarify instead of a raw KeyError that would crash the turn.
+    specialist = SPECIALISTS.get(decision.route)
+    if specialist is None:
+        return ConciergeResult(
+            route="clarify",
+            status="clarify",
+            concierge_message=_CLARIFY_FALLBACK,
+            reading=None,
+        )
+
+    # The specialist returns a SpecialistReply — either a finished reading or a
+    # request for more input. Map the two onto a ConciergeResult so the app can
+    # switch on `status` and memory can log only completed readings.
+    reply = specialist(user_message, context)
+    if reply.status == "need_input":
+        return ConciergeResult(
+            route=decision.route,
+            status="need_input",
+            concierge_message=reply.text,          # show the specialist's question
+            reading=None,
+            missing=reply.missing,
+        )
     return ConciergeResult(
         route=decision.route,
-        concierge_message=decision.message_to_user,
-        reading=reading,
+        status="reading",
+        concierge_message=decision.message_to_user,  # the router's warm handoff line
+        reading=reply.text,
     )
 
 
@@ -152,8 +196,10 @@ if __name__ == "__main__":
         if i > 0:
             print("\nWaiting 12 seconds to avoid rate limits...")
             time.sleep(12)
-            
+
         result = concierge(msg, ctx)
-        print(f"\n[{result.route}] {result.concierge_message}")
+        print(f"\n[{result.route}/{result.status}] {result.concierge_message}")
+        if result.missing:
+            print(f"  missing: {result.missing}")
         if result.reading:
             print(f"  reading: {result.reading[:120]}...")

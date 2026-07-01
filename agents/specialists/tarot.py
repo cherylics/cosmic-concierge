@@ -13,6 +13,7 @@ from google.genai import types
 
 from utils.config import client, MODEL
 from utils.persona import SHARED_RULES
+from utils.schemas import SpecialistReply
 
 SPECIALIST_NAME = "tarot"
 
@@ -68,13 +69,17 @@ TAROT_PROMPT = TAROT_PERSONA + SHARED_RULES
 
 # --- The specialist interface (matches the stub) --------------------------
 
-def run(user_message: str, context: dict) -> str:
+def run(user_message: str, context: dict) -> SpecialistReply:
     """Draw a spread and return the reading. Called by the orchestrator."""
     # Directive 1: for tarot we need a focus area. If the input is too thin to
     # read on, ask before drawing rather than guessing.
     if len(user_message.strip()) < 8 and not context.get("focus_area"):
-        return ("Before I draw your cards — what area of life would you like to "
-                "focus on? Love, career, a specific decision, or something else?")
+        return SpecialistReply(
+            status="need_input",
+            text=("Before I draw your cards — what area of life would you like to "
+                  "focus on? Love, career, a specific decision, or something else?"),
+            missing=["focus_area"],
+        )
 
     cards = draw_cards(3)
     positions = ["The situation", "The guidance", "Where it may lead"]
@@ -99,10 +104,11 @@ def run(user_message: str, context: dict) -> str:
             temperature=0.9,   # high: readings should feel varied and alive
         ),
     )
-    return response.text
+    return SpecialistReply(status="reading", text=response.text)
 
 
 # --- Quick standalone test (run from repo root) ---------------------------
 #     python -m agents.specialists.tarot
 if __name__ == "__main__":
-    print(run("Should I take the new job offer or stay where I am?", {}))
+    reply = run("Should I take the new job offer or stay where I am?", {})
+    print(f"[{reply.status}] {reply.text}")
