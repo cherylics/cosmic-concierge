@@ -103,6 +103,20 @@ def select_practice(key: str):
     st.session_state.selected_card = key
 
 
+def switch_practice(key: str):
+    if key == "home":
+        st.session_state.chat_history = []
+        st.session_state.active_agent = None
+        st.session_state.selected_card = None
+    else:
+        st.session_state.active_agent = key
+        st.session_state.selected_card = key
+        practice = PRACTICES[key]
+        st.session_state.chat_history = [
+            {"role": "assistant", "content": practice["greeting"]}
+        ]
+
+
 def _run_agent(user_message: str) -> str:
     """Run one turn through the agent layer; degrade gracefully on error."""
     try:
@@ -417,16 +431,125 @@ st.markdown(
         margin: 12px auto 0 auto;
     }
     
-    /* Sticky header for the chat session */
+    /* Fixed header for the chat session - stays persisted during scrolling */
     .sticky-header-container {
-        position: sticky;
-        top: 0;
-        background: #faf9f7;
-        z-index: 9999;
-        padding: 16px 0 12px 0;
-        border-bottom: 1px solid #e8e4de;
-        margin-bottom: 20px;
-        text-align: center;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        background: #faf9f7 !important;
+        z-index: 99999 !important;
+        padding: 24px 0 16px 0 !important;
+        border-bottom: 1px solid #e8e4de !important;
+        text-align: center !important;
+        width: 100% !important;
+        max-width: 900px !important;
+        margin: 0 auto !important;
+    }
+    
+    .chat-area {
+        max-width: 620px;
+        margin: 0 auto;
+        padding: 100px 0 160px 0 !important; /* spacing for fixed header and bottom tray */
+    }
+
+    /* ---------- Bottom Navigation Tray (below text input) ---------- */
+    .bottom-nav-container {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        height: 75px !important;
+        background: #faf9f7 !important;
+        border-top: 1px solid #e8e4de !important;
+        z-index: 99999 !important;
+        width: 100% !important;
+        max-width: 900px !important;
+        margin: 0 auto !important;
+        padding: 10px 0 !important;
+    }
+
+    /* Shift standard Streamlit bottom chat-input block up */
+    div[data-testid="stBottom"] {
+        bottom: 75px !important;
+        background: transparent !important;
+    }
+    div[data-testid="stBottomBlockContainer"] {
+        padding-bottom: 160px !important;
+    }
+
+    /* Center columns in the bottom tray */
+    .bottom-nav-container div[data-testid="column"] {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 55px !important;
+        position: relative !important;
+    }
+
+    /* Invisible overlay button stretching over the column in the bottom tray */
+    .bottom-nav-container div[data-testid="column"] div.element-container:first-child {
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+    .bottom-nav-container div[data-testid="column"] button {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 55px !important;
+        z-index: 99999 !important;
+        background: transparent !important;
+        border: none !important;
+        color: transparent !important;
+        cursor: pointer !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .bottom-tab-card {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        cursor: pointer !important;
+        padding: 6px 14px !important;
+        border-radius: 20px !important;
+        transition: background 0.3s ease, transform 0.2s ease;
+        border: 1px solid transparent;
+        text-align: left;
+    }
+    .bottom-tab-card:hover {
+        background: rgba(232, 228, 222, 0.4) !important;
+    }
+    .bottom-tab-card.active {
+        background: #e8e4de !important;
+        border-color: #c8c3bb !important;
+    }
+    .bottom-tab-card img {
+        width: 24px !important;
+        height: 24px !important;
+        border-radius: 50% !important;
+        object-fit: cover !important;
+        border: 1px solid #e8e4de !important;
+        transition: filter 0.3s ease;
+    }
+    .bottom-tab-card.grayed img {
+        filter: grayscale(100%) !important;
+        opacity: 0.6 !important;
+    }
+    .bottom-tab-card span {
+        font-family: 'Cormorant Garamond', Georgia, serif !important;
+        font-size: 1.05rem !important;
+        font-weight: 500 !important;
+        color: #3a3a3a !important;
+        -webkit-text-fill-color: #3a3a3a !important;
+        letter-spacing: 0.02em !important;
+    }
+    .bottom-tab-card.grayed span {
+        color: #8a857f !important;
+        -webkit-text-fill-color: #8a857f !important;
     }
     </style>
     """,
@@ -568,42 +691,44 @@ else:
         )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ── Bottom navigation / controls ──
-    st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
-    
-    other_practices = {k: v["title"] for k, v in PRACTICES.items() if k != st.session_state.active_agent}
-    
-    nav_cols = st.columns([1.5, 2, 1.5])
-    with nav_cols[1]:
-        # Back to Home Button
-        if st.button("✦ Back to Home", key="back_home_nav", use_container_width=True):
-            st.session_state.chat_history = []
-            st.session_state.active_agent = None
-            st.session_state.selected_card = None
-            st.rerun()
+    # ── Bottom navigation tray (floats below input box) ──
+    st.markdown('<div class="bottom-nav-container">', unsafe_allow_html=True)
+    nav_cols = st.columns(4, gap="small")
 
-        # Switch Practice Selectbox
-        switch_options = ["✦ Switch practice to..."] + list(other_practices.values())
-        selected_switch = st.selectbox(
-            "Switch practice",
-            options=switch_options,
-            label_visibility="collapsed",
-            key="switch_practice_dropdown"
-        )
-        if selected_switch != "✦ Switch practice to...":
-            # Find the practice key
-            new_key = [k for k, v in other_practices.items() if v == selected_switch][0]
-            st.session_state.active_agent = new_key
-            st.session_state.selected_card = new_key
-            
-            # Start new chat with the chosen agent's greeting
-            practice = PRACTICES[new_key]
-            st.session_state.chat_history = [
-                {"role": "assistant", "content": practice["greeting"]}
-            ]
-            st.rerun()
+    # Layout Home, Tarot, Zodiac, Bazi horizontally
+    tabs = [
+        {"key": "home", "label": "Home", "img": COSMIC_B64},
+        {"key": "tarot", "label": "Tarot", "img": TAROT_B64},
+        {"key": "zodiac", "label": "Zodiac", "img": ZODIAC_B64},
+        {"key": "bazi", "label": "Bazi · 八字", "img": BAZI_B64},
+    ]
 
-    st.markdown("<div style='height: 60px;'></div>", unsafe_allow_html=True)
+    for col_idx, tab in enumerate(tabs):
+        is_active = (tab["key"] == "home" and st.session_state.active_agent is None) or (tab["key"] == st.session_state.active_agent)
+        active_cls = "active" if is_active else "grayed"
+
+        with nav_cols[col_idx]:
+            # Native invisible button overlay
+            st.button(
+                " ",
+                key=f"bottom_nav_{tab['key']}",
+                on_click=switch_practice,
+                args=(tab["key"],),
+                use_container_width=True,
+            )
+
+            # Styled visual card
+            st.markdown(
+                f"""
+                <div class="bottom-tab-card {active_cls}">
+                    <img src="data:image/png;base64,{tab['img']}" alt="{tab['label']}">
+                    <span>{tab['label']}</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # Chat Input Box (floats at the very bottom)
     if user_input := st.chat_input("Ask the cosmos anything …"):
