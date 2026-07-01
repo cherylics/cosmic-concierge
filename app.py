@@ -152,9 +152,13 @@ st.markdown(
         font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif !important;
     }
 
+    /* ---------- Hide header completely ---------- */
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+
     /* ---------- Uniform background ---------- */
     .stApp,
-    header[data-testid="stHeader"],
     div[data-testid="stBottomBlockContainer"],
     div[data-testid="stBottom"] {
         background: #faf9f7 !important;
@@ -439,7 +443,7 @@ st.markdown(
         right: 0 !important;
         background: #faf9f7 !important;
         z-index: 99999 !important;
-        padding: 24px 0 16px 0 !important;
+        padding: 16px 0 12px 0 !important;
         border-bottom: 1px solid #e8e4de !important;
         text-align: center !important;
         width: 100% !important;
@@ -450,63 +454,57 @@ st.markdown(
     .chat-area {
         max-width: 620px;
         margin: 0 auto;
-        padding: 100px 0 160px 0 !important; /* spacing for fixed header and bottom tray */
+        padding: 85px 0 40px 0 !important; /* Top padding to avoid header cutoff */
     }
 
-    /* ---------- Bottom Navigation Tray (below text input) ---------- */
-    .bottom-nav-container {
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        height: 75px !important;
+    /* ---------- Bottom Navigation Tray (inside stBottom, below input) ---------- */
+    div[data-testid="stBottom"] {
         background: #faf9f7 !important;
         border-top: 1px solid #e8e4de !important;
+        padding: 12px 0 16px 0 !important;
         z-index: 99999 !important;
-        width: 100% !important;
-        max-width: 900px !important;
-        margin: 0 auto !important;
-        padding: 10px 0 !important;
-    }
-
-    /* Shift standard Streamlit bottom chat-input block up */
-    div[data-testid="stBottom"] {
-        bottom: 75px !important;
-        background: transparent !important;
     }
     div[data-testid="stBottomBlockContainer"] {
-        padding-bottom: 160px !important;
+        padding-bottom: 140px !important; /* Space for the bottom tray and input */
     }
 
     /* Center columns in the bottom tray */
-    .bottom-nav-container div[data-testid="column"] {
+    div[data-testid="stBottom"] div[data-testid="column"] {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        height: 55px !important;
+        height: 48px !important;
         position: relative !important;
     }
 
     /* Invisible overlay button stretching over the column in the bottom tray */
-    .bottom-nav-container div[data-testid="column"] div.element-container:first-child {
+    div[data-testid="stBottom"] div[data-testid="column"] div.element-container:first-child {
         height: 0 !important;
         margin: 0 !important;
         padding: 0 !important;
         overflow: visible !important;
     }
-    .bottom-nav-container div[data-testid="column"] button {
+    div[data-testid="stBottom"] div[data-testid="column"] button {
         position: absolute !important;
         top: 0 !important;
         left: 0 !important;
         width: 100% !important;
-        height: 55px !important;
-        z-index: 99999 !important;
+        height: 48px !important;
+        z-index: 999999 !important;
         background: transparent !important;
         border: none !important;
         color: transparent !important;
         cursor: pointer !important;
         margin: 0 !important;
         padding: 0 !important;
+    }
+    div[data-testid="stBottom"] div[data-testid="column"] button:hover,
+    div[data-testid="stBottom"] div[data-testid="column"] button:focus,
+    div[data-testid="stBottom"] div[data-testid="column"] button:active {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        outline: none !important;
     }
 
     .bottom-tab-card {
@@ -516,7 +514,7 @@ st.markdown(
         cursor: pointer !important;
         padding: 6px 14px !important;
         border-radius: 20px !important;
-        transition: background 0.3s ease, transform 0.2s ease;
+        transition: background 0.3s ease;
         border: 1px solid transparent;
         text-align: left;
     }
@@ -528,8 +526,8 @@ st.markdown(
         border-color: #c8c3bb !important;
     }
     .bottom-tab-card img {
-        width: 24px !important;
-        height: 24px !important;
+        width: 22px !important;
+        height: 22px !important;
         border-radius: 50% !important;
         object-fit: cover !important;
         border: 1px solid #e8e4de !important;
@@ -691,7 +689,19 @@ else:
         )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ── Bottom navigation tray (floats below input box) ──
+    # 1. Chat Input Box (renders at the top of the stBottom tray)
+    if user_input := st.chat_input("Ask the cosmos anything …"):
+        st.session_state.chat_history.append(
+            {"role": "user", "content": user_input}
+        )
+        with st.spinner("Consulting the cosmos…"):
+            reply_html = _run_agent(user_input)
+        st.session_state.chat_history.append(
+            {"role": "assistant", "content": reply_html}
+        )
+        st.rerun()
+
+    # 2. Bottom navigation tray (renders below user input in the stBottom tray)
     st.markdown('<div class="bottom-nav-container">', unsafe_allow_html=True)
     nav_cols = st.columns(4, gap="small")
 
@@ -729,15 +739,3 @@ else:
             )
 
     st.markdown('</div>', unsafe_allow_html=True)
-
-    # Chat Input Box (floats at the very bottom)
-    if user_input := st.chat_input("Ask the cosmos anything …"):
-        st.session_state.chat_history.append(
-            {"role": "user", "content": user_input}
-        )
-        with st.spinner("Consulting the cosmos…"):
-            reply_html = _run_agent(user_input)
-        st.session_state.chat_history.append(
-            {"role": "assistant", "content": reply_html}
-        )
-        st.rerun()
