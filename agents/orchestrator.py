@@ -1,4 +1,25 @@
-# orchestrator.py - The master "Concierge" router agent
+# agents/orchestrator.py - The master "Concierge" router agent
+import os
+import sys
+
+# Auto-execute using the virtual environment python if it exists and we aren't using it
+venv_python = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".venv", "bin", "python"))
+if os.path.exists(venv_python) and sys.executable != venv_python:
+    os.execv(venv_python, [venv_python] + sys.argv)
+
+# Add project root to sys.path to allow running the script directly
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from typing import Optional
+from google.genai import types
+
+from utils.config import client, MODEL
+from utils.types import RouterDecision, ConciergeResult
+from agents.specialists import tarot, zodiac, bazi
+
+
 CONCIERGE_ROUTER_PROMPT = """
 You are the Concierge — the warm, perceptive front desk of Cosmic Concierge,
 a personal guidance service. You do not give readings yourself. Your only job
@@ -58,54 +79,9 @@ Respond with ONLY a JSON object, no markdown, no extra text:
 }
 """.strip()
 
-# orchestrator.py - The master "Concierge" router agent
-import os
-import sys
-
-# Auto-execute using the virtual environment python if it exists and we aren't using it
-venv_python = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".venv", "bin", "python"))
-if os.path.exists(venv_python) and sys.executable != venv_python:
-    os.execv(venv_python, [venv_python] + sys.argv)
-
-from typing import Literal, Optional
-
-# Add project root to sys.path to allow running the script directly
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-from dotenv import load_dotenv
-from pydantic import BaseModel
-from google import genai
-from google.genai import types
-
-from agents.specialists import tarot, zodiac, bazi
-
-load_dotenv()  # reads GEMINI_API_KEY from your .env
-
-# Use whatever current flash model AI Studio gives you.
-# gemini-2.5-flash is reliable on the free tier; newer gemini-3.x flash also works.
-MODEL = "gemini-2.5-flash"
-
-client = genai.Client()  # picks up GEMINI_API_KEY from the environment
-
-
-# --- The shared contract (lock this with Person B) -------------------------
-
-class RouterDecision(BaseModel):
-    route: Literal["tarot", "zodiac", "bazi", "clarify", "out_of_scope"]
-    rationale: str
-    message_to_user: str
-
-
-class ConciergeResult(BaseModel):
-    route: str
-    concierge_message: str          # the warm handoff / clarify question / redirect
-    reading: Optional[str] = None   # the specialist's output, or None
-
 
 # Maps a route to the specialist that handles it.
-# Every specialist must expose: run(user_message: str, context: dict) -> str
+# Every specialist exposes: run(user_message: str, context: dict) -> str
 SPECIALISTS = {
     "tarot": tarot.run,
     "zodiac": zodiac.run,
@@ -113,10 +89,7 @@ SPECIALISTS = {
 }
 
 
-# CONCIERGE_ROUTER_PROMPT = """ ... your prompt stays here ... """
-
-
-# --- Step 2: routing -------------------------------------------------------
+# --- Routing ---------------------------------------------------------------
 
 def route_request(user_message: str) -> RouterDecision:
     """Ask the Concierge which specialist (if any) should handle this."""
@@ -127,29 +100,30 @@ def route_request(user_message: str) -> RouterDecision:
             config=types.GenerateContentConfig(
                 system_instruction=CONCIERGE_ROUTER_PROMPT,
                 response_mime_type="application/json",
-                response_schema=RouterDecision,  # guarantees valid JSON
-                temperature=0.3,                 # routing wants consistency, not flair
+                response_schema=RouterDecision,   # guarantees valid JSON
+                temperature=0.3,                  # routing wants consistency
             ),
         )
         return RouterDecision.model_validate_json(response.text)
     except Exception as e:
-        # Fail safe: if the model or network hiccups, ask a clarifying question
-        # rather than crashing the app or guessing a route.
+        # Fail safe: never crash the app or blind-guess a route.
+        print(f"DEBUG: Router error caught: {e}", file=sys.stderr)
         return RouterDecision(
             route="clarify",
             rationale=f"router error: {e}",
-            message_to_user="I want to point you to the right guide — could you tell me a bit more about what's on your mind?",
+            message_to_user="I want to point you to the right guide — could you "
+                            "tell me a bit more about what's on your mind?",
         )
 
 
-# --- Step 3: dispatch / handoff -------------------------------------------
+# --- Dispatch / handoff ----------------------------------------------------
 
 def concierge(user_message: str, context: Optional[dict] = None) -> ConciergeResult:
-    """Full front-desk turn: route, then hand off to a specialist if appropriate."""
+    """Full front-desk turn: route, then hand off to a specialist if needed."""
     context = context or {}
     decision = route_request(user_message)
 
-    # clarify and out_of_scope never reach a specialist — the Concierge handles them.
+    # clarify and out_of_scope never reach a specialist.
     if decision.route in ("clarify", "out_of_scope"):
         return ConciergeResult(
             route=decision.route,
@@ -157,8 +131,7 @@ def concierge(user_message: str, context: Optional[dict] = None) -> ConciergeRes
             reading=None,
         )
 
-    specialist_fn = SPECIALISTS[decision.route]
-    reading = specialist_fn(user_message, context)
+    reading = SPECIALISTS[decision.route](user_message, context)
     return ConciergeResult(
         route=decision.route,
         concierge_message=decision.message_to_user,
@@ -166,16 +139,21 @@ def concierge(user_message: str, context: Optional[dict] = None) -> ConciergeRes
     )
 
 
-# --- Quick manual test (run: python -m orchestrator) -----------------------
-
+# --- Quick manual test (run from repo root: python -m agents.orchestrator) --
 if __name__ == "__main__":
-    for msg in [
-        "Should I text my ex back? I keep going back and forth.",   # -> tarot
-        "What's my career path look like over the next ten years?", # -> bazi
-        "Why do my partner and I clash so much, we're so different",# -> zodiac
-        "I've had chest pains for a week, will they go away?",      # -> out_of_scope
-    ]:
-        result = concierge(msg)
+    import time
+    ctx = {"birth_date": "1994-04-25", "birth_time": "14:30", "gender": "female"}
+    for i, msg in enumerate([
+        "Should I text my ex back? I keep going back and forth.",
+        "What's my career path look like over the next ten years?",
+        "Why do my partner and I clash so much, we're so different?",
+        "I've had chest pains for a week, will they go away?",
+    ]):
+        if i > 0:
+            print("\nWaiting 12 seconds to avoid rate limits...")
+            time.sleep(12)
+            
+        result = concierge(msg, ctx)
         print(f"\n[{result.route}] {result.concierge_message}")
         if result.reading:
-            print(f"  reading: {result.reading}")
+            print(f"  reading: {result.reading[:120]}...")
