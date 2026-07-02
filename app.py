@@ -136,6 +136,12 @@ def _run_agent(user_message: str) -> str:
             st.session_state.routed_agent = route
         else:
             st.session_state.routed_agent = None
+
+        # Automatically lock the active agent to the routed specialist so follow-up
+        # turns bypass the router and go straight to that specialist.
+        if route in ("tarot", "zodiac", "bazi"):
+            st.session_state.active_agent = route
+
         return reply_html
     except Exception as e:
         return (
