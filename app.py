@@ -72,9 +72,9 @@ PRACTICES = {
         ),
     },
     "cosmic": {
-        "title": "Cosmic",
+        "title": "Cosmo",
         "img": COSMIC_B64,
-        "label": "Cosmic",
+        "label": "Cosmo",
         "hover": (
             "Tell us what's on your mind and "
             "we'll choose the right reading for you."
