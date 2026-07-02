@@ -601,9 +601,9 @@ else:
             width: 100% !important;
             max-width: 900px !important;
             margin: 0 auto !important;
-            padding: 6px 0 12px 0 !important;
+            padding: 6px 0 16px 0 !important;
             border-bottom: 1px solid #e8e4de !important;
-            height: 60px !important;
+            height: auto !important; /* Allow dynamic height so it never cuts off buttons */
         }
 
         /* Clear Streamlit default container margins/paddings inside fixed header block */
@@ -699,6 +699,29 @@ else:
             color: #8a857f !important;
             -webkit-text-fill-color: #8a857f !important;
         }
+
+        /* Styled unicode icon for Home tab */
+        .bottom-tab-card .home-icon {
+            font-size: 0.95rem !important;
+            width: 22px !important;
+            height: 22px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border-radius: 50% !important;
+            border: 1px solid #e8e4de !important;
+            background: #faf9f7 !important;
+            color: #5c574f !important;
+            transition: color 0.3s ease, border-color 0.3s ease;
+        }
+        .bottom-tab-card.active .home-icon {
+            background: #e8e4de !important;
+            color: #3a3a3a !important;
+            border-color: #c8c3bb !important;
+        }
+        .bottom-tab-card.grayed .home-icon {
+            opacity: 0.6 !important;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -715,11 +738,12 @@ else:
     )
 
     # Horizontal navigation block
-    nav_cols = st.columns(4, gap="small")
+    nav_cols = st.columns(5, gap="small")
 
-    # Layout Home, Tarot, Zodiac, Bazi horizontally
+    # Layout Home, Cosmo, Tarot, Zodiac, Bazi horizontally
     tabs = [
-        {"key": "home", "label": "Home", "img": COSMIC_B64},
+        {"key": "home", "label": "Home", "img": None},
+        {"key": "cosmic", "label": "Cosmo", "img": COSMIC_B64},
         {"key": "tarot", "label": "Tarot", "img": TAROT_B64},
         {"key": "zodiac", "label": "Zodiac", "img": ZODIAC_B64},
         {"key": "bazi", "label": "Bazi · 八字", "img": BAZI_B64},
@@ -740,10 +764,15 @@ else:
             )
 
             # Styled visual card
+            if tab["img"]:
+                img_html = f'<img src="data:image/png;base64,{tab["img"]}" alt="{tab["label"]}">'
+            else:
+                img_html = '<span class="home-icon">⌂</span>'
+
             st.markdown(
                 f"""
                 <div class="bottom-tab-card {active_cls}">
-                    <img src="data:image/png;base64,{tab['img']}" alt="{tab['label']}">
+                    {img_html}
                     <span>{tab['label']}</span>
                 </div>
                 """,
