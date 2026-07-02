@@ -97,6 +97,8 @@ if "active_agent" not in st.session_state:
     st.session_state.active_agent = None
 if "selected_card" not in st.session_state:
     st.session_state.selected_card = None
+if "awaiting_reply" not in st.session_state:
+    st.session_state.awaiting_reply = False
 
 
 def select_practice(key: str):
@@ -104,6 +106,7 @@ def select_practice(key: str):
 
 
 def switch_practice(key: str):
+    st.session_state.awaiting_reply = False
     if key == "home":
         st.session_state.chat_history = []
         st.session_state.active_agent = None
@@ -540,11 +543,7 @@ if not st.session_state.chat_history:
                 {"role": "assistant", "content": practice["greeting"]},
                 {"role": "user", "content": user_text},
             ]
-            with st.spinner("Consulting the cosmos…"):
-                reply_html = _run_agent(user_text)
-            st.session_state.chat_history.append(
-                {"role": "assistant", "content": reply_html}
-            )
+            st.session_state.awaiting_reply = True
             st.session_state.selected_card = None
             st.rerun()
 
@@ -776,14 +775,22 @@ else:
             width=0,
         )
 
+    # Run agent turn inside the chat view if we are awaiting a response
+    if st.session_state.awaiting_reply:
+        # Get the latest user message
+        user_msg = st.session_state.chat_history[-1]["content"]
+        with st.spinner("Consulting the cosmos…"):
+            reply_html = _run_agent(user_msg)
+        st.session_state.chat_history.append(
+            {"role": "assistant", "content": reply_html}
+        )
+        st.session_state.awaiting_reply = False
+        st.rerun()
+
     # Chat Input Box (floats at the very bottom)
     if user_input := st.chat_input("Ask the cosmos anything …"):
         st.session_state.chat_history.append(
             {"role": "user", "content": user_input}
         )
-        with st.spinner("Consulting the cosmos…"):
-            reply_html = _run_agent(user_input)
-        st.session_state.chat_history.append(
-            {"role": "assistant", "content": reply_html}
-        )
+        st.session_state.awaiting_reply = True
         st.rerun()
