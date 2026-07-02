@@ -1,8 +1,10 @@
 # Cosmic Concierge ✦
 
-**Cosmic Concierge** is a multi-agent personal-guidance service built with Streamlit and Google Gemini. A warm "front desk" concierge listens to what's on your mind and routes you to the right practice — **Tarot**, **Western Zodiac**, or **Chinese Bazi (Four Pillars of Destiny / 八字)** — then hands you a reading grounded in a real, deterministic calculation.
+Some questions don't have a lookup answer. When you're feeling adrift — unsure which way to turn, caught between two choices, or just trying to make sense of a season of life — **Cosmic Concierge** is a place to pause, get your bearings, and reflect.
 
-Built for the **Kaggle Vibe Coding Agents Capstone** (Concierge Agents track).
+A warm front-desk concierge listens to what's really on your mind and points you toward the practice that fits: **Tarot** for a decision in motion, **Western Zodiac** for the patterns in who you are, or **Chinese Bazi (Four Pillars of Destiny / 八字)** for the longer arc of your life. Every reading is grounded in a real, deterministic calculation and then interpreted for your specific question — guidance to reflect on, never a verdict.
+
+Built with Streamlit and Google Gemini for the **Kaggle Vibe Coding Agents Capstone** (Concierge Agents track).
 
 ---
 
@@ -58,7 +60,7 @@ This is why the esoteric math is trustworthy even though the prose is generative
 
 1. The user picks a practice (or Cosmo) and asks a question. `app.py` calls `chat.handle_turn(user_id, active_agent, message)`.
 2. The **bridge** (`utils/chat.py`) opportunistically parses any birth date/time/gender from the message into the memory profile, then builds a `context` dict from the stored profile plus a short recap of recent readings.
-3. Routing: a specific practice card goes **straight to that specialist** (`forced_route`), skipping the router; **Cosmo** calls `route_request()`, where the LLM router returns a structured `RouterDecision`.
+3. Routing: a specific card goes **straight to that specialist** (`forced_route`), skipping the router; **Cosmo** calls `route_request()`, where the LLM router returns a structured `RouterDecision`.
 4. The specialist runs its deterministic tool, hands the facts to the model, and returns a `SpecialistReply` — either a finished reading or a request for more input.
 5. The orchestrator maps that onto a `ConciergeResult` carrying an explicit `status`. The bridge logs to memory **only for completed readings**, renders the markdown to HTML, and returns `(html, route, status)`.
 6. `app.py` shows the reply and, after Cosmo routes you somewhere, "sticky-locks" follow-up turns to that specialist.
@@ -114,6 +116,17 @@ Guidance is framed as reflection and entertainment, never prediction or professi
 
 - The **router** detects a medical, legal, financial, or self-harm concern dressed up as a fortune question and returns `out_of_scope` — acknowledging the real issue and pointing to a qualified professional instead of routing to a reading.
 - **`SHARED_RULES`** (appended to every specialist's system prompt) reinforces those boundaries in the reading itself.
+
+### Intentionally out of scope
+
+Cosmic Concierge is for reflection, not for decisions that need a qualified professional. By design, it will **not**:
+
+- give **financial or investment advice** — what to buy, sell, or put your money into;
+- offer **medical guidance, diagnosis, or physical treatment**;
+- give **legal advice**;
+- promise **certainty about the future** or anyone's fate.
+
+When a question is really about one of these — even when it arrives dressed as a fortune question ("will my chest pain go away?", "should I move my savings into this stock?") — the Concierge names the real concern and points you toward a qualified professional or someone you trust, rather than producing a reading.
 
 ---
 
