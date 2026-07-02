@@ -100,8 +100,8 @@ def _result_to_html(result) -> str:
 
 # --- The one call app.py makes ---------------------------------------------
 
-def handle_turn(user_id: str, active_agent: Optional[str], user_message: str) -> str:
-    """Run one user turn through the agent layer and return HTML to display.
+def handle_turn(user_id: str, active_agent: Optional[str], user_message: str) -> tuple[str, str, str]:
+    """Run one user turn through the agent layer and return (HTML, route, status).
 
     - captures any birth details from the message into the profile
     - builds context (profile + recent-reading recap) from memory
@@ -119,4 +119,4 @@ def handle_turn(user_id: str, active_agent: Optional[str], user_message: str) ->
     if result.is_reading:
         memory.add_reading(user_id, result.route, user_message, result.reading)
 
-    return _result_to_html(result)
+    return _result_to_html(result), result.route, result.status

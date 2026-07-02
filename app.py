@@ -99,6 +99,8 @@ if "selected_card" not in st.session_state:
     st.session_state.selected_card = None
 if "awaiting_reply" not in st.session_state:
     st.session_state.awaiting_reply = False
+if "routed_agent" not in st.session_state:
+    st.session_state.routed_agent = None
 
 
 def select_practice(key: str):
@@ -107,6 +109,7 @@ def select_practice(key: str):
 
 def switch_practice(key: str):
     st.session_state.awaiting_reply = False
+    st.session_state.routed_agent = None
     if key == "home":
         st.session_state.chat_history = []
         st.session_state.active_agent = None
@@ -123,11 +126,17 @@ def switch_practice(key: str):
 def _run_agent(user_message: str) -> str:
     """Run one turn through the agent layer; degrade gracefully on error."""
     try:
-        return handle_turn(
+        active_route = st.session_state.get("routed_agent") or st.session_state.active_agent
+        reply_html, route, status = handle_turn(
             st.session_state.user_id,
-            st.session_state.active_agent,
+            active_route,
             user_message,
         )
+        if status == "need_input":
+            st.session_state.routed_agent = route
+        else:
+            st.session_state.routed_agent = None
+        return reply_html
     except Exception as e:
         return (
             "The cosmos is clouded for a moment — I couldn't complete that "
@@ -568,18 +577,17 @@ else:
             right: 0 !important;
             background: #faf9f7 !important;
             z-index: 99999 !important;
-            padding: 32px 0 12px 0 !important;
+            padding: 36px 0 16px 0 !important;
             text-align: center !important;
             width: 100% !important;
             max-width: 900px !important;
             margin: 0 auto !important;
-            height: 75px !important;
         }
         
         /* Fix the horizontal columns block right beneath the header text */
         div[data-testid="stHorizontalBlock"] {
             position: fixed !important;
-            top: 75px !important; /* sits directly below title container */
+            top: 82px !important; /* sits directly below title container */
             left: 0 !important;
             right: 0 !important;
             background: #faf9f7 !important;
@@ -587,9 +595,9 @@ else:
             width: 100% !important;
             max-width: 900px !important;
             margin: 0 auto !important;
-            padding: 8px 0 12px 0 !important;
+            padding: 6px 0 12px 0 !important;
             border-bottom: 1px solid #e8e4de !important;
-            height: 65px !important;
+            height: 60px !important;
         }
 
         /* Clear Streamlit default container margins/paddings inside fixed header block */
@@ -601,7 +609,7 @@ else:
         .chat-area {
             max-width: 620px;
             margin: 0 auto;
-            padding: 180px 0 40px 0 !important; /* Spacing for fixed header and nav tray */
+            padding: 190px 0 40px 0 !important; /* Spacing for fixed header and nav tray */
         }
 
         /* Center columns in the sticky nav block */
