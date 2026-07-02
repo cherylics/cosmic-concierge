@@ -1,64 +1,168 @@
 # Cosmic Concierge ✦
 
-Welcome to **Cosmic Concierge**, a wide-layout Streamlit application providing multi-agent esoteric readings: Tarot, Zodiac, and Bazi (Four Pillars of Destiny).
+**Cosmic Concierge** is a multi-agent personal-guidance service built with Streamlit and Google Gemini. A warm "front desk" concierge listens to what's on your mind and routes you to the right practice — **Tarot**, **Western Zodiac**, or **Chinese Bazi (Four Pillars of Destiny / 八字)** — then hands you a reading grounded in a real, deterministic calculation.
+
+Built for the **Kaggle Vibe Coding Agents Capstone** (Concierge Agents track).
 
 ---
 
-## 📁 Project Structure
+## What it does
+
+Four ways in, shown as cards on the landing page:
+
+- **Tarot** — for a specific question or decision happening now. Draws a real three-card spread (78-card deck, upright/reversed) and reads it against your question.
+- **Zodiac** — for identity, patterns, and compatibility. Anchored on your sun sign, computed from your birth date.
+- **Bazi · 八字** — for your long-term life trajectory. Casts your Four Pillars, Five-Element balance, Day Master, and decade luck cycles (Da Yun) from your exact birth moment.
+- **Cosmo** — not sure which you need? Describe the situation and the Concierge routes you to the best-fit practice (or gently redirects if it's really a medical/legal/financial matter).
+
+---
+
+## Design principle: *math by function, meaning by model*
+
+Correctness and creativity are kept strictly separate:
+
+- **Deterministic tools compute the facts.** Card draws, sun-sign lookup, and the entire Four Pillars chart (via `lunar_python`) are computed in plain Python. The model never invents a card, a sign, a pillar, or a date.
+- **The model only interprets** the numbers it's handed, in the voice of each practice.
+
+This is why the esoteric math is trustworthy even though the prose is generative.
+
+---
+
+## Architecture
+
+```
+                         ┌──────────────────────────────┐
+   Streamlit UI  ───────▶│  utils/chat.py  (the bridge)  │
+   (app.py)              │  handle_turn(...)             │
+                         └───────────────┬──────────────┘
+                                         │  builds context from memory,
+                                         │  captures birth details,
+                                         │  chooses forced vs routed
+                                         ▼
+                         ┌──────────────────────────────┐
+                         │  agents/orchestrator.py       │
+                         │  concierge() / route_request()│
+                         └───────┬───────────────┬───────┘
+                     forced pick │               │ router decision
+                                 ▼               ▼
+                    ┌────────────────────┐   clarify / out_of_scope
+                    │ agents/specialists │   (no specialist runs)
+                    │  tarot·zodiac·bazi │
+                    └─────────┬──────────┘
+                              │ deterministic tool → model interprets
+                              ▼
+                         SpecialistReply  →  ConciergeResult  →  memory (if a real reading)
+```
+
+**How one turn flows**
+
+1. The user picks a practice (or Cosmo) and asks a question. `app.py` calls `chat.handle_turn(user_id, active_agent, message)`.
+2. The **bridge** (`utils/chat.py`) opportunistically parses any birth date/time/gender from the message into the memory profile, then builds a `context` dict from the stored profile plus a short recap of recent readings.
+3. Routing: a specific practice card goes **straight to that specialist** (`forced_route`), skipping the router; **Cosmo** calls `route_request()`, where the LLM router returns a structured `RouterDecision`.
+4. The specialist runs its deterministic tool, hands the facts to the model, and returns a `SpecialistReply` — either a finished reading or a request for more input.
+5. The orchestrator maps that onto a `ConciergeResult` carrying an explicit `status`. The bridge logs to memory **only for completed readings**, renders the markdown to HTML, and returns `(html, route, status)`.
+6. `app.py` shows the reply and, after Cosmo routes you somewhere, "sticky-locks" follow-up turns to that specialist.
+
+---
+
+## Project structure
 
 ```
 cosmic-concierge/
-├── .gitignore               # Ignores __pycache__, .env, and local IDE configs
-├── README.md                # Project overview and installation instructions
-├── requirements.txt         # Python dependencies
-├── app.py                   # Main Streamlit frontend application
+├── app.py                     # Streamlit frontend: landing cards + chat view
+├── requirements.txt
+├── .gitignore                 # ignores .env, .venv, __pycache__, data/ (user memory)
+├── README.md
 │
-├── assets/                  # Illustrations used on the landing page
-│   ├── tarot.png
-│   ├── zodiac.png
-│   ├── bazi.png
-│   └── cosmic.png
+├── assets/                    # landing-page illustrations
+│   ├── tarot.png  zodiac.png  bazi.png  cosmic.png
 │
-├── agents/                  # The Multi-Agent Orchestration Layer
-│   ├── __init__.py
-│   ├── orchestrator.py      # Master "Concierge" router agent
-│   │
-│   └── specialists/         # Individual esoteric expert agents
-│       ├── __init__.py
-│       ├── tarot.py         # Tarot reading systems & logic
-│       ├── zodiac.py        # Astrology/Zodiac prompts & logic
-│       └── bazi.py          # Chinese Bazi prompts & logic (replaces feng_shui)
+├── agents/                    # the agent layer
+│   ├── orchestrator.py        # Concierge router + dispatch (concierge / route_request)
+│   ├── report.py              # weekly reflection agent (calendar-windowed)
+│   └── specialists/
+│       ├── tarot.py           # 78-card draw  → interpretation
+│       ├── zodiac.py          # sun-sign lookup → interpretation
+│       └── bazi.py            # Four Pillars via lunar_python → interpretation
 │
-└── utils/                   # Shared helper utilities
-    ├── __init__.py
-    └── memory.py            # Passes conversation context between agents
+└── utils/                     # shared infrastructure
+    ├── chat.py                # bridge between the UI and the agent layer
+    ├── config.py              # model name + shared genai.Client()
+    ├── persona.py             # SHARED_RULES: tone, formatting, safety boundaries
+    ├── memory.py              # per-user JSON profiles + reading history
+    └── schemas.py             # Pydantic contracts shared across every layer
 ```
 
 ---
 
-## 🚀 Getting Started
+## Data contracts (`utils/schemas.py`)
 
-1. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Every layer speaks the same typed language:
 
-2. **Run the Streamlit App**:
-   ```bash
-   streamlit run app.py
-   ```
+- **`Route`** — `Literal["tarot", "zodiac", "bazi", "clarify", "out_of_scope"]`.
+- **`TurnStatus`** — `Literal["reading", "need_input", "clarify", "out_of_scope"]`.
+- **`RouterDecision`** — the router's choice (`route`, `rationale`, `message_to_user`); generated with `response_schema` so the JSON is always valid.
+- **`SpecialistReply`** — what every specialist's `run()` returns: `status` (`reading` / `need_input`), `text`, and `missing` (fields still needed).
+- **`ConciergeResult`** — the terminal result of a turn. `status` is **required** (no silent default), and `is_reading` is the single gate memory checks before logging.
+- **`WeeklyReport`** — the Report agent's output, with `subject`/`period_start`/`period_end` derived from the same window used to filter, so the header can never claim a range the filter didn't cover.
 
 ---
 
-## 📢 Notes for Teammates
+## Safety
 
-If you are working on the **Orchestration Layer** or **Specialist Agents**, please keep these updates in mind:
+Guidance is framed as reflection and entertainment, never prediction or professional advice, at two layers:
 
-1. **Specialist Rename (Feng Shui ➔ Bazi)**
-   * We switched the Feng Shui agent to a **Bazi Agent** (Chinese destiny reading).
-   * The file has been renamed to `agents/specialists/bazi.py`. Write Bazi prompts/logic here.
+- The **router** detects a medical, legal, financial, or self-harm concern dressed up as a fortune question and returns `out_of_scope` — acknowledging the real issue and pointing to a qualified professional instead of routing to a reading.
+- **`SHARED_RULES`** (appended to every specialist's system prompt) reinforces those boundaries in the reading itself.
 
-2. **Integration Hooks (Session State & Router)**
-   * **Selected Agent**: The chosen practice key is stored in `st.session_state.active_agent` (`"tarot"`, `"zodiac"`, `"bazi"`, or `"cosmic"`).
-   * **Chat History**: Initialized in `st.session_state.chat_history` as a list of dictionaries: `[{"role": "user/assistant", "content": "..."}]`.
-   * **Connecting Orchestrator**: The frontend currently appends placeholder text to the chat history when a message is sent. We will wire up the routing layer in `app.py` where the placeholder response is generated.
+---
+
+## Getting started
+
+Requires Python 3.10+ and a Google Gemini API key.
+
+```bash
+# 1. clone
+git clone https://github.com/cherylics/cosmic-concierge.git
+cd cosmic-concierge
+
+# 2. virtual environment
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+
+# 3. dependencies
+pip install -r requirements.txt
+
+# 4. API key — create a .env file in the repo root (it is gitignored):
+echo "GEMINI_API_KEY=your_key_here" > .env
+
+# 5. run
+streamlit run app.py
+```
+
+The model is set in one place (`utils/config.py`, currently `gemini-2.5-flash`). The router runs at low temperature for consistent routing; the specialists run hotter so readings feel alive.
+
+---
+
+## Testing
+
+Each agent has a standalone self-test you can run from the repo root (these make live model calls):
+
+```bash
+python -m agents.specialists.tarot      # a tarot reading
+python -m agents.specialists.zodiac     # asks for birth data, then reads
+python -m agents.specialists.bazi       # a full Four Pillars reading
+python -m agents.orchestrator           # routes several sample questions
+python -m agents.report                 # a weekly reflection for a demo user
+```
+
+The deterministic pieces (card draw, sun-sign lookup, Four Pillars math, report windowing) are pure functions and can be tested without any API calls.
+
+---
+
+## Team & status
+
+- **Agent intelligence layer** (router, specialists, memory contract, report) — Person A.
+- **Frontend, bridge/memory integration, packaging** — Person B.
+
+The orchestration layer is fully wired to the frontend; the four practices, routing, birth-detail capture, per-session memory, and safety redirects all work end to end. The **weekly Report agent is implemented in the agent layer but not yet surfaced in the UI** — it's ready to be triggered from a button or a scheduled job. Per-user memory is currently scoped to a browser session (an anonymous `user_id`); a stable identity would enable returning-user history and richer weekly reports.
