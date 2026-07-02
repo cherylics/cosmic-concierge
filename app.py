@@ -568,17 +568,18 @@ else:
             right: 0 !important;
             background: #faf9f7 !important;
             z-index: 99999 !important;
-            padding: 16px 0 0 0 !important;
+            padding: 20px 0 0 0 !important;
             text-align: center !important;
             width: 100% !important;
             max-width: 900px !important;
             margin: 0 auto !important;
+            height: 60px !important;
         }
         
         /* Fix the horizontal columns block right beneath the header text */
         div[data-testid="stHorizontalBlock"] {
             position: fixed !important;
-            top: 48px !important; /* sits directly below title */
+            top: 60px !important; /* sits directly below title container */
             left: 0 !important;
             right: 0 !important;
             background: #faf9f7 !important;
@@ -586,14 +587,21 @@ else:
             width: 100% !important;
             max-width: 900px !important;
             margin: 0 auto !important;
-            padding: 8px 0 8px 0 !important;
+            padding: 6px 0 10px 0 !important;
             border-bottom: 1px solid #e8e4de !important;
+            height: 60px !important;
+        }
+
+        /* Clear Streamlit default container margins/paddings inside fixed header block */
+        div[data-testid="stHorizontalBlock"] div.element-container {
+            margin: 0 !important;
+            padding: 0 !important;
         }
 
         .chat-area {
             max-width: 620px;
             margin: 0 auto;
-            padding: 135px 0 40px 0 !important; /* Top padding to avoid header cutoff */
+            padding: 150px 0 40px 0 !important; /* Spacing for fixed header and nav tray */
         }
 
         /* Center columns in the sticky nav block */
