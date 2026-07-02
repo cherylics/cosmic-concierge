@@ -436,42 +436,6 @@ st.markdown(
         margin: 12px auto 0 auto;
     }
 
-    /* Fixed header for the chat session - stays persisted during scrolling */
-    .sticky-header-container {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        background: #faf9f7 !important;
-        z-index: 99999 !important;
-        padding: 16px 0 0 0 !important;
-        text-align: center !important;
-        width: 100% !important;
-        max-width: 900px !important;
-        margin: 0 auto !important;
-    }
-    
-    /* Fixed navigation block directly beneath the header text */
-    .sticky-nav-block {
-        position: fixed !important;
-        top: 48px !important; /* sits directly below title */
-        left: 0 !important;
-        right: 0 !important;
-        background: #faf9f7 !important;
-        z-index: 99999 !important;
-        width: 100% !important;
-        max-width: 900px !important;
-        margin: 0 auto !important;
-        padding: 8px 0 8px 0 !important;
-        border-bottom: 1px solid #e8e4de !important;
-    }
-
-    .chat-area {
-        max-width: 620px;
-        margin: 0 auto;
-        padding: 135px 0 40px 0 !important; /* Top padding to avoid header cutoff */
-    }
-
     /* ---------- Bottom Section (inside stBottom, holds chat input) ---------- */
     div[data-testid="stBottom"] {
         background: #faf9f7 !important;
@@ -481,107 +445,6 @@ st.markdown(
     }
     div[data-testid="stBottomBlockContainer"] {
         padding-bottom: 80px !important;
-    }
-
-    /* Center columns in the sticky nav block */
-    .sticky-nav-block div[data-testid="column"] {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        height: 48px !important;
-        position: relative !important;
-    }
-
-    /* Invisible overlay button stretching over the columns in the top block */
-    .sticky-nav-block div[data-testid="column"] div.element-container:first-child {
-        height: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: visible !important;
-    }
-    .sticky-nav-block div[data-testid="column"] button {
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: 48px !important;
-        z-index: 999999 !important;
-        background: transparent !important;
-        border: none !important;
-        color: transparent !important;
-        cursor: pointer !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    .sticky-nav-block div[data-testid="column"] button:hover,
-    .sticky-nav-block div[data-testid="column"] button:focus,
-    .sticky-nav-block div[data-testid="column"] button:active {
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        outline: none !important;
-    }
-
-    .bottom-tab-card {
-        display: flex !important;
-        align-items: center !important;
-        gap: 8px !important;
-        cursor: pointer !important;
-        padding: 6px 14px !important;
-        border-radius: 20px !important;
-        transition: background 0.3s ease;
-        border: 1px solid transparent;
-        text-align: left;
-    }
-    .bottom-tab-card:hover {
-        background: rgba(232, 228, 222, 0.4) !important;
-    }
-    .bottom-tab-card.active {
-        background: #e8e4de !important;
-        border-color: #c8c3bb !important;
-    }
-    .bottom-tab-card img {
-        width: 22px !important;
-        height: 22px !important;
-        border-radius: 50% !important;
-        object-fit: cover !important;
-        border: 1px solid #e8e4de !important;
-        transition: filter 0.3s ease;
-    }
-    .bottom-tab-card.grayed img {
-        filter: grayscale(100%) !important;
-        opacity: 0.6 !important;
-    }
-    .bottom-tab-card span {
-        font-family: 'Cormorant Garamond', Georgia, serif !important;
-        font-size: 1.05rem !important;
-        font-weight: 500 !important;
-        color: #3a3a3a !important;
-        -webkit-text-fill-color: #3a3a3a !important;
-        letter-spacing: 0.02em !important;
-    }
-    .bottom-tab-card.grayed span {
-        color: #8a857f !important;
-        -webkit-text-fill-color: #8a857f !important;
-    }    object-fit: cover !important;
-        border: 1px solid #e8e4de !important;
-        transition: filter 0.3s ease;
-    }
-    .bottom-tab-card.grayed img {
-        filter: grayscale(100%) !important;
-        opacity: 0.6 !important;
-    }
-    .bottom-tab-card span {
-        font-family: 'Cormorant Garamond', Georgia, serif !important;
-        font-size: 1.05rem !important;
-        font-weight: 500 !important;
-        color: #3a3a3a !important;
-        -webkit-text-fill-color: #3a3a3a !important;
-        letter-spacing: 0.02em !important;
-    }
-    .bottom-tab-card.grayed span {
-        color: #8a857f !important;
-        -webkit-text-fill-color: #8a857f !important;
     }
     </style>
     """,
@@ -693,6 +556,132 @@ else:
         st.session_state.active_agent, {}
     ).get("title", "Cosmic Concierge")
 
+    # Scoped stylesheet for CHAT VIEW
+    st.markdown(
+        """
+        <style>
+        /* Fixed header for the chat session - stays persisted during scrolling */
+        .sticky-header-container {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            background: #faf9f7 !important;
+            z-index: 99999 !important;
+            padding: 16px 0 0 0 !important;
+            text-align: center !important;
+            width: 100% !important;
+            max-width: 900px !important;
+            margin: 0 auto !important;
+        }
+        
+        /* Fix the horizontal columns block right beneath the header text */
+        div[data-testid="stHorizontalBlock"] {
+            position: fixed !important;
+            top: 48px !important; /* sits directly below title */
+            left: 0 !important;
+            right: 0 !important;
+            background: #faf9f7 !important;
+            z-index: 99999 !important;
+            width: 100% !important;
+            max-width: 900px !important;
+            margin: 0 auto !important;
+            padding: 8px 0 8px 0 !important;
+            border-bottom: 1px solid #e8e4de !important;
+        }
+
+        .chat-area {
+            max-width: 620px;
+            margin: 0 auto;
+            padding: 135px 0 40px 0 !important; /* Top padding to avoid header cutoff */
+        }
+
+        /* Center columns in the sticky nav block */
+        div[data-testid="stHorizontalBlock"] div[data-testid="column"] {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            height: 48px !important;
+            position: relative !important;
+        }
+
+        /* Invisible overlay button stretching over the columns in the top block */
+        div[data-testid="stHorizontalBlock"] div[data-testid="column"] div.element-container:first-child {
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+        }
+        div[data-testid="stHorizontalBlock"] div[data-testid="column"] button {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 48px !important;
+            z-index: 999999 !important;
+            background: transparent !important;
+            border: none !important;
+            color: transparent !important;
+            cursor: pointer !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        div[data-testid="stHorizontalBlock"] div[data-testid="column"] button:hover,
+        div[data-testid="stHorizontalBlock"] div[data-testid="column"] button:focus,
+        div[data-testid="stHorizontalBlock"] div[data-testid="column"] button:active {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+
+        .bottom-tab-card {
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            cursor: pointer !important;
+            padding: 6px 14px !important;
+            border-radius: 20px !important;
+            transition: background 0.3s ease;
+            border: 1px solid transparent;
+            text-align: left;
+        }
+        .bottom-tab-card:hover {
+            background: rgba(232, 228, 222, 0.4) !important;
+        }
+        .bottom-tab-card.active {
+            background: #e8e4de !important;
+            border-color: #c8c3bb !important;
+        }
+        .bottom-tab-card img {
+            width: 22px !important;
+            height: 22px !important;
+            border-radius: 50% !important;
+            object-fit: cover !important;
+            border: 1px solid #e8e4de !important;
+            transition: filter 0.3s ease;
+        }
+        .bottom-tab-card.grayed img {
+            filter: grayscale(100%) !important;
+            opacity: 0.6 !important;
+        }
+        .bottom-tab-card span {
+            font-family: 'Cormorant Garamond', Georgia, serif !important;
+            font-size: 1.05rem !important;
+            font-weight: 500 !important;
+            color: #3a3a3a !important;
+            -webkit-text-fill-color: #3a3a3a !important;
+            letter-spacing: 0.02em !important;
+        }
+        .bottom-tab-card.grayed span {
+            color: #8a857f !important;
+            -webkit-text-fill-color: #8a857f !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     # Sticky persisted header text
     st.markdown(
         f"""
@@ -703,8 +692,7 @@ else:
         unsafe_allow_html=True,
     )
 
-    # Sticky persisted navigation block right beneath heading
-    st.markdown('<div class="sticky-nav-block">', unsafe_allow_html=True)
+    # Horizontal navigation block
     nav_cols = st.columns(4, gap="small")
 
     # Layout Home, Tarot, Zodiac, Bazi horizontally
