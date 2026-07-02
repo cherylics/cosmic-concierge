@@ -425,12 +425,13 @@ st.markdown(
 
     .chat-header-text {
         font-weight: 400 !important;
-        font-size: 2rem !important;
+        font-size: 1.6rem !important;
         letter-spacing: 0.04em;
         color: #1a1a1a !important;
         -webkit-text-fill-color: #1a1a1a !important;
         margin: 0 !important;
         text-align: center;
+        white-space: nowrap !important;
     }
     .chat-divider {
         width: 36px;
