@@ -212,14 +212,25 @@ def run(user_message: str, context: dict) -> SpecialistReply:
             missing.append("birth_date")
         if birth_time is None:
             missing.append("birth_time")
+
+        # Acknowledge what we already have so a partial answer never gets the
+        # same boilerplate back (which reads to the user like a bug).
+        if birth_date is not None:                      # only the time is missing
+            nice = f"{birth_date.strftime('%B')} {birth_date.day}, {birth_date.year}"
+            text = (f"I have your birth date — **{nice}**. "
+                    "Now I just need your **time of birth** (e.g. 14:30 or 2:30 pm) — "
+                    "the hour sets one of the four pillars. If you'd like your "
+                    "decade luck cycles too, tell me whether to read them as "
+                    "male or female.")
+        else:
+            text = ("To cast your Four Pillars, I'll need your **exact birth date "
+                    "and time** (the hour matters — it sets one of the four "
+                    "pillars). If you'd like your decade luck cycles too, let me "
+                    "know whether to read them as male or female — the tradition "
+                    "calculates their direction from this.")
         return SpecialistReply(
             status="need_input",
-            text=("To cast your Four Pillars, I'll need your **exact birth date "
-                  "and time** (the hour matters — it sets one of the four "
-                  "pillars), and ideally your **birth city**. If you'd like your "
-                  "decade luck cycles too, let me know whether to read them as "
-                  "male or female — the tradition calculates their direction "
-                  "from this."),
+            text=text,
             missing=missing,
         )
 

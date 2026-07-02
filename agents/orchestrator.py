@@ -146,10 +146,14 @@ def _result_from_reply(route: str, reply, handoff: Optional[str]) -> ConciergeRe
     reading stands on its own.
     """
     if reply.status == "need_input":
+        # Keep the router's "why this practice" line even when the specialist
+        # has to ask for data first — otherwise the explanation is silently
+        # dropped on every first-time route (the user has no birth data yet).
+        msg = f"{handoff}\n\n{reply.text}" if handoff else reply.text
         return ConciergeResult(
             route=route,
             status="need_input",
-            concierge_message=reply.text,          # show the specialist's question
+            concierge_message=msg,                 # handoff + specialist's question
             reading=None,
             missing=reply.missing,
         )

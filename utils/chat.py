@@ -47,8 +47,73 @@ except Exception:  # markdown not installed — degrade gracefully
 #
 # This is a pragmatic bridge, not a parser for every phrasing. A dedicated
 # birth-details form would be more robust; see the note in the review.
+# ISO-ish: 1995-01-05, 1995/1/5
 _DATE_RE = re.compile(r"\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b")
-_TIME_RE = re.compile(r"\b([01]?\d|2[0-3]):([0-5]\d)\b")
+# US numeric: 1/5/1995 (interpreted month-first)
+_DATE_US_RE = re.compile(r"\b(\d{1,2})[/](\d{1,2})[/](\d{4})\b")
+# Month-name: "Jan 5th 1995", "January 5, 1995", "5 Jan 1995"
+_MONTHS = {m: i + 1 for i, m in enumerate(
+    ["jan", "feb", "mar", "apr", "may", "jun",
+     "jul", "aug", "sep", "oct", "nov", "dec"])}
+_DATE_NAME_RE = re.compile(
+    r"\b(?:(\d{1,2})(?:st|nd|rd|th)?\s+)?"          # optional leading day
+    r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?"
+    r"(?:\s+(\d{1,2})(?:st|nd|rd|th)?)?,?\s+(\d{4})\b",
+    re.IGNORECASE)
+# 24h "14:30" or 12h "2:30 pm"; "6pm" also accepted
+_TIME_RE = re.compile(
+    r"\b(\d{1,2})(?::([0-5]\d))?\s*(am|pm|a\.m\.|p\.m\.)?\b", re.IGNORECASE)
+
+
+def _extract_date(message: str):
+    """Return a date found in free text, or None. Tries ISO, US, month-name."""
+    m = _DATE_RE.search(message)
+    if m:
+        y, mo, d = (int(g) for g in m.groups())
+        return _safe_date(y, mo, d)
+    m = _DATE_US_RE.search(message)
+    if m:
+        mo, d, y = (int(g) for g in m.groups())
+        return _safe_date(y, mo, d)
+    m = _DATE_NAME_RE.search(message)
+    if m:
+        day_a, mon, day_b, year = m.groups()
+        day = day_a or day_b
+        if day:
+            return _safe_date(int(year), _MONTHS[mon.lower()[:3]], int(day))
+    return None
+
+
+def _safe_date(y: int, mo: int, d: int):
+    try:
+        return date(y, mo, d)
+    except ValueError:      # e.g. 2024-13-40 — ignore rather than store a bad date
+        return None
+
+
+def _extract_time(message: str):
+    """Return 'HH:MM' (24h) from '14:30', '2:30 pm', or '6pm'; else None.
+
+    A bare number with no colon and no am/pm is NOT treated as a time —
+    otherwise the day in 'Jan 5th 1995' would be captured as 05:00.
+    """
+    for m in _TIME_RE.finditer(message):
+        h, mins, ampm = m.group(1), m.group(2) or "00", m.group(3)
+        if mins == "00" and m.group(2) is None and not ampm:
+            continue                       # bare number, not a time
+        h = int(h)
+        if ampm:
+            ampm = ampm.lower().replace(".", "")
+            if not 1 <= h <= 12:
+                continue
+            if ampm == "pm" and h != 12:
+                h += 12
+            elif ampm == "am" and h == 12:
+                h = 0
+        elif not 0 <= h <= 23:
+            continue
+        return f"{h:02d}:{mins}"
+    return None
 _FEMALE_RE = re.compile(r"\b(female|woman|girl)\b", re.IGNORECASE)
 _MALE_RE = re.compile(r"\b(male|man|boy)\b", re.IGNORECASE)
 
@@ -60,17 +125,13 @@ def capture_birth_details(user_id: str, message: str) -> dict:
     """
     fields: dict = {}
 
-    m = _DATE_RE.search(message)
-    if m:
-        y, mo, d = (int(g) for g in m.groups())
-        try:
-            fields["birth_date"] = date(y, mo, d).isoformat()
-        except ValueError:
-            pass   # e.g. 2024-13-40 — ignore rather than store a bad date
+    d = _extract_date(message)
+    if d:
+        fields["birth_date"] = d.isoformat()
 
-    t = _TIME_RE.search(message)
+    t = _extract_time(message)
     if t:
-        fields["birth_time"] = f"{int(t.group(1)):02d}:{t.group(2)}"
+        fields["birth_time"] = t
 
     # Check female before male so "female" doesn't trip the "male" pattern.
     if _FEMALE_RE.search(message):
