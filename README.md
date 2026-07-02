@@ -175,7 +175,7 @@ The deterministic pieces (card draw, sun-sign lookup, Four Pillars math, report 
 
 ## Team & status
 
-- **Agent intelligence layer** (router, specialists, memory contract, report) — Person A.
-- **Frontend, bridge/memory integration, packaging** — Person B.
+- **Agent intelligence layer** (router, specialists, memory contract, report) — Mengci Duan.
+- **Frontend, bridge/memory integration, packaging** — Yichen Li.
 
 The orchestration layer is fully wired to the frontend; the four practices, routing, birth-detail capture, per-session memory, and safety redirects all work end to end. The **weekly Report agent is implemented in the agent layer but not yet surfaced in the UI** — it's ready to be triggered from a button or a scheduled job. Per-user memory is currently scoped to a browser session (an anonymous `user_id`); a stable identity would enable returning-user history and richer weekly reports.
