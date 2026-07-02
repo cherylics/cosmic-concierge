@@ -27,6 +27,21 @@ COSMIC_B64 = img_to_base64(ASSET_DIR / "cosmic.png")
 
 # ── Practice data ────────────────────────────────────────────────────────────
 PRACTICES = {
+    "cosmic": {
+        "title": "Cosmo",
+        "img": COSMIC_B64,
+        "label": "Cosmo",
+        "hover": (
+            "Tell us what's on your mind and "
+            "we'll choose the right reading for you."
+        ),
+        "greeting": (
+            "Welcome to Cosmic Concierge ✦\n\n"
+            "Tell me what's on your mind — a relationship, a career "
+            "crossroads, a feeling you can't quite name — and I'll "
+            "guide you to the cosmic practice that fits best."
+        ),
+    },
     "tarot": {
         "title": "Tarot",
         "img": TAROT_B64,
@@ -69,21 +84,6 @@ PRACTICES = {
             "I'll decode your Four Pillars of Destiny — the interplay "
             "of Wood, Fire, Earth, Metal, and Water in your life. "
             "Please share your birth date and time to begin."
-        ),
-    },
-    "cosmic": {
-        "title": "Cosmo",
-        "img": COSMIC_B64,
-        "label": "Cosmo",
-        "hover": (
-            "Tell us what's on your mind and "
-            "we'll choose the right reading for you."
-        ),
-        "greeting": (
-            "Welcome to Cosmic Concierge ✦\n\n"
-            "Tell me what's on your mind — a relationship, a career "
-            "crossroads, a feeling you can't quite name — and I'll "
-            "guide you to the cosmic practice that fits best."
         ),
     },
 }
@@ -623,7 +623,7 @@ else:
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            height: 38px !important;
+            height: 32px !important;
             position: relative !important;
         }
 
@@ -639,7 +639,7 @@ else:
             top: 0 !important;
             left: 0 !important;
             width: 100% !important;
-            height: 38px !important;
+            height: 32px !important;
             z-index: 999999 !important;
             background: transparent !important;
             border: none !important;
@@ -662,8 +662,8 @@ else:
             align-items: center !important;
             gap: 8px !important;
             cursor: pointer !important;
-            padding: 6px 14px !important;
-            border-radius: 20px !important;
+            padding: 3px 10px !important;
+            border-radius: 16px !important;
             transition: background 0.3s ease;
             border: 1px solid transparent;
             text-align: left;
@@ -676,8 +676,8 @@ else:
             border-color: #c8c3bb !important;
         }
         .bottom-tab-card img {
-            width: 22px !important;
-            height: 22px !important;
+            width: 18px !important;
+            height: 18px !important;
             border-radius: 50% !important;
             object-fit: cover !important;
             border: 1px solid #e8e4de !important;
@@ -689,7 +689,7 @@ else:
         }
         .bottom-tab-card span {
             font-family: 'Cormorant Garamond', Georgia, serif !important;
-            font-size: 1.05rem !important;
+            font-size: 0.92rem !important;
             font-weight: 500 !important;
             color: #3a3a3a !important;
             -webkit-text-fill-color: #3a3a3a !important;
@@ -702,9 +702,9 @@ else:
 
         /* Styled unicode icon for Home tab */
         .bottom-tab-card .home-icon {
-            font-size: 0.95rem !important;
-            width: 22px !important;
-            height: 22px !important;
+            font-size: 0.8rem !important;
+            width: 18px !important;
+            height: 18px !important;
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
