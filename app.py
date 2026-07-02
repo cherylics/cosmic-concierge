@@ -410,7 +410,33 @@ st.markdown(
     }
     .msg-bubble.assistant {
         background: #ffffff;
-        borde    /* Fixed header for the chat session - stays persisted during scrolling */
+        border: 1px solid #ebe8e3;
+        color: #2c2c2c !important;
+        -webkit-text-fill-color: #2c2c2c !important;
+    }
+    .msg-bubble.user {
+        background: #1a1a1a;
+        color: #f5f4f2 !important;
+        -webkit-text-fill-color: #f5f4f2 !important;
+    }
+
+    .chat-header-text {
+        font-weight: 400 !important;
+        font-size: 2rem !important;
+        letter-spacing: 0.04em;
+        color: #1a1a1a !important;
+        -webkit-text-fill-color: #1a1a1a !important;
+        margin: 0 !important;
+        text-align: center;
+    }
+    .chat-divider {
+        width: 36px;
+        height: 1px;
+        background: #c8c3bb;
+        margin: 12px auto 0 auto;
+    }
+
+    /* Fixed header for the chat session - stays persisted during scrolling */
     .sticky-header-container {
         position: fixed !important;
         top: 0 !important;
