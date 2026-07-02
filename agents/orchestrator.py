@@ -124,10 +124,15 @@ def route_request(user_message: str) -> RouterDecision:
     except Exception as e:
         # Fail safe: never crash the app or blind-guess a route.
         print(f"DEBUG: Router error caught: {e}", file=sys.stderr)
+        err_msg = str(e)
+        if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
+            msg = "The cosmos is crowded right now. Please wait a moment for the stars to align and try again. (429 Rate Limit)"
+        else:
+            msg = f"A cosmic storm has disrupted the connection: {err_msg[:120]}"
         return RouterDecision(
             route="clarify",
             rationale=f"router error: {e}",
-            message_to_user=_CLARIFY_FALLBACK,
+            message_to_user=msg,
         )
 
 

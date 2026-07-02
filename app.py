@@ -583,7 +583,7 @@ else:
             right: 0 !important;
             background: #faf9f7 !important;
             z-index: 99999 !important;
-            padding: 36px 0 16px 0 !important;
+            padding: 44px 0 16px 0 !important;
             text-align: center !important;
             width: 100% !important;
             max-width: 900px !important;
@@ -593,7 +593,7 @@ else:
         /* Fix the horizontal columns block right beneath the header text */
         div[data-testid="stHorizontalBlock"] {
             position: fixed !important;
-            top: 82px !important; /* sits directly below title container */
+            top: 100px !important; /* sits directly below title container */
             left: 0 !important;
             right: 0 !important;
             background: #faf9f7 !important;
@@ -615,7 +615,7 @@ else:
         .chat-area {
             max-width: 620px;
             margin: 0 auto;
-            padding: 190px 0 40px 0 !important; /* Spacing for fixed header and nav tray */
+            padding: 210px 0 40px 0 !important; /* Spacing for fixed header and nav tray */
         }
 
         /* Center columns in the sticky nav block */
