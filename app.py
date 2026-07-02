@@ -568,18 +568,17 @@ else:
             right: 0 !important;
             background: #faf9f7 !important;
             z-index: 99999 !important;
-            padding: 20px 0 0 0 !important;
+            padding: 12px 0 4px 0 !important;
             text-align: center !important;
             width: 100% !important;
             max-width: 900px !important;
             margin: 0 auto !important;
-            height: 60px !important;
         }
         
         /* Fix the horizontal columns block right beneath the header text */
         div[data-testid="stHorizontalBlock"] {
             position: fixed !important;
-            top: 60px !important; /* sits directly below title container */
+            top: 44px !important; /* sits directly below title container */
             left: 0 !important;
             right: 0 !important;
             background: #faf9f7 !important;
@@ -587,9 +586,9 @@ else:
             width: 100% !important;
             max-width: 900px !important;
             margin: 0 auto !important;
-            padding: 6px 0 10px 0 !important;
+            padding: 4px 0 8px 0 !important;
             border-bottom: 1px solid #e8e4de !important;
-            height: 60px !important;
+            height: 50px !important;
         }
 
         /* Clear Streamlit default container margins/paddings inside fixed header block */
@@ -601,7 +600,7 @@ else:
         .chat-area {
             max-width: 620px;
             margin: 0 auto;
-            padding: 150px 0 40px 0 !important; /* Spacing for fixed header and nav tray */
+            padding: 110px 0 40px 0 !important; /* Spacing for fixed header and nav tray */
         }
 
         /* Center columns in the sticky nav block */
@@ -609,7 +608,7 @@ else:
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            height: 48px !important;
+            height: 38px !important;
             position: relative !important;
         }
 
@@ -625,7 +624,7 @@ else:
             top: 0 !important;
             left: 0 !important;
             width: 100% !important;
-            height: 48px !important;
+            height: 38px !important;
             z-index: 999999 !important;
             background: transparent !important;
             border: none !important;
