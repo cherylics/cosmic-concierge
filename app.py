@@ -805,23 +805,35 @@ else:
         st.components.v1.html(
             """
             <script>
-            function scrollToLastAssistant() {
+            (function() {
                 const win = window.parent;
                 const doc = win.document;
-                const assistantRows = doc.querySelectorAll('.msg-row.assistant');
-                if (assistantRows.length > 0) {
-                    const lastAssistant = assistantRows[assistantRows.length - 1];
-                    const rect = lastAssistant.getBoundingClientRect();
+
+                function getTargetY() {
+                    const rows = doc.querySelectorAll('.msg-row.assistant');
+                    if (rows.length === 0) return -1;
+                    const last = rows[rows.length - 1];
+                    const rect = last.getBoundingClientRect();
                     const scrollTop = win.pageYOffset || doc.documentElement.scrollTop;
-                    const targetY = scrollTop + rect.top - 220;
-                    win.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+                    return Math.max(0, scrollTop + rect.top - 220);
                 }
-            }
-            // Fire multiple times to override Streamlit's own auto-scroll-to-bottom
-            setTimeout(scrollToLastAssistant, 100);
-            setTimeout(scrollToLastAssistant, 300);
-            setTimeout(scrollToLastAssistant, 600);
-            setTimeout(scrollToLastAssistant, 1000);
+
+                // Keep forcing scroll position every 50ms for 3s to beat
+                // Streamlit's own auto-scroll-to-bottom behaviour.
+                let n = 0;
+                const iv = setInterval(function() {
+                    const y = getTargetY();
+                    if (y >= 0) win.scrollTo({ top: y, behavior: 'instant' });
+                    if (++n >= 60) {            // 60 × 50 ms = 3 s
+                        clearInterval(iv);
+                        // One final smooth scroll for a polished landing
+                        setTimeout(function() {
+                            const y2 = getTargetY();
+                            if (y2 >= 0) win.scrollTo({ top: y2, behavior: 'smooth' });
+                        }, 100);
+                    }
+                }, 50);
+            })();
             </script>
             """,
             height=0,
