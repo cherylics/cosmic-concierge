@@ -102,16 +102,16 @@ def _extract_time(message: str):
         if mins == "00" and m.group(2) is None and not ampm:
             continue                       # bare number, not a time
         h = int(h)
-        if ampm:
+        if ampm and 1 <= h <= 12:
             ampm = ampm.lower().replace(".", "")
-            if not 1 <= h <= 12:
-                continue
             if ampm == "pm" and h != 12:
                 h += 12
             elif ampm == "am" and h == 12:
                 h = 0
         elif not 0 <= h <= 23:
             continue
+        # An hour > 12 with an am/pm suffix (e.g. "13:10 pm") is contradictory;
+        # trust the unambiguous 24h number and ignore the suffix.
         return f"{h:02d}:{mins}"
     return None
 _FEMALE_RE = re.compile(r"\b(female|woman|girl)\b", re.IGNORECASE)

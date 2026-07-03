@@ -1,5 +1,6 @@
 # agents/specialists/bazi.py
 import os
+import re
 import sys
 
 # Add project root to sys.path so python can find 'utils' when this script is run directly
@@ -241,15 +242,29 @@ def run(user_message: str, context: dict) -> SpecialistReply:
         if gender_known:
             have.append(f"your luck cycles set to **{context.get('gender')}**")
 
+        unreadable = birth_date is not None and bool(re.search(r"\d", user_message or ""))
+
         ask = []
         if birth_date is None:
             ask.append("your **exact birth date**")
         if birth_time is None:
-            ask.append("your **time of birth** (e.g. 14:30 or 2:30 pm) — the "
-                       "hour sets one of the four pillars. If you don't know "
-                       "it, just say so and I'll cast a three-pillar reading")
+            if unreadable:      # the prefix already shows the format
+                ask.append("your **time of birth**")
+            else:
+                ask.append("your **time of birth** (e.g. 14:30 or 2:30 pm) — the "
+                           "hour sets one of the four pillars. If you don't know "
+                           "it, just say so and I'll cast a three-pillar reading")
 
         text = ""
+        # If they're mid-collection (date already on file) and this message has
+        # digits we failed to parse, own it — a silent verbatim repeat reads
+        # like a bug. This catches ANY future unparseable format, not just
+        # the ones the regexes anticipate.
+        if unreadable:
+            text += ("Hmm — I couldn't quite read that as a time of birth. "
+                     "Could you give it like **14:30** or **2:30 pm**? "
+                     "(Or say you don't know it and I'll cast a three-pillar "
+                     "reading.) ")
         if have:
             text += "I have " + " and ".join(have) + ". "
         text += ("Now I just need " if have else
