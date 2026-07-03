@@ -41,18 +41,25 @@ _STEM_POLARITY = {"甲": "yang", "乙": "yin", "丙": "yang", "丁": "yin",
 
 def calculate_bazi(year: int, month: int, day: int,
                    hour: int, minute: int = 0,
-                   gender: Optional[int] = None) -> dict:
+                   gender: Optional[int] = None,
+                   hour_known: bool = True) -> dict:
     """Compute the Four Pillars chart from a birth moment.
 
     gender: 1 = male, 0 = female (needed only for the luck-cycle direction).
             If None, luck cycles are omitted.
+    hour_known: when False (user doesn't know their birth time), the hour
+            pillar is EXCLUDED from the chart and element counts — a classic
+            three-pillar reading — rather than fabricating an hour.
     Returns a plain dict the reader agent can interpret.
     """
     solar = Solar.fromYmdHms(year, month, day, hour, minute, 0)
     ec = solar.getLunar().getEightChar()
 
-    stems = [ec.getYearGan(), ec.getMonthGan(), ec.getDayGan(), ec.getTimeGan()]
-    branches = [ec.getYearZhi(), ec.getMonthZhi(), ec.getDayZhi(), ec.getTimeZhi()]
+    stems = [ec.getYearGan(), ec.getMonthGan(), ec.getDayGan()]
+    branches = [ec.getYearZhi(), ec.getMonthZhi(), ec.getDayZhi()]
+    if hour_known:
+        stems.append(ec.getTimeGan())
+        branches.append(ec.getTimeZhi())
 
     # Count the five elements across all 8 characters (main elements only;
     # hidden stems inside branches are a professional refinement we don't add).
@@ -68,7 +75,8 @@ def calculate_bazi(year: int, month: int, day: int,
     result = {
         "pillars": {
             "year": ec.getYear(), "month": ec.getMonth(),
-            "day": ec.getDay(), "hour": ec.getTime(),
+            "day": ec.getDay(),
+            "hour": ec.getTime() if hour_known else "unknown (three-pillar reading)",
         },
         "day_master": {
             "stem": day_stem,
@@ -161,6 +169,10 @@ figures as given — do NOT recompute or invent pillars, elements, or dates.
   stages carry which elemental energy, and what each decade invites them to
   focus on. This long view is the heart of a Bazi reading.
 
+- If the hour pillar is marked unknown, this is a THREE-PILLAR reading: note
+  briefly and warmly that the hour would add finer detail, then read the three
+  pillars with full confidence — do not dwell on what's missing.
+
 # Style
 Weave the pillars, elements, and cycles into one flowing narrative addressed to
 the person — not a table of definitions. Keep it to roughly 4-6 short
@@ -204,41 +216,63 @@ def run(user_message: str, context: dict) -> SpecialistReply:
     """
     birth_date = _parse_birth_date(context.get("birth_date"))
     birth_time = _parse_time(context.get("birth_time"))
+    # Escape hatch: the user told us they don't know their birth hour.
+    # We proceed with a three-pillar reading instead of looping forever.
+    time_unknown = str(context.get("birth_time", "")).strip().lower() == "unknown"
 
-    # Directive 1: gather necessary data before reading. Bazi needs date + time.
-    if birth_date is None or birth_time is None:
+    # Directive 1: gather necessary data before reading. Bazi needs date + time
+    # (or an explicit "unknown" for a three-pillar reading).
+    if birth_date is None or (birth_time is None and not time_unknown):
         missing = []
         if birth_date is None:
             missing.append("birth_date")
         if birth_time is None:
             missing.append("birth_time")
 
-        # Acknowledge what we already have so a partial answer never gets the
-        # same boilerplate back (which reads to the user like a bug).
-        if birth_date is not None:                      # only the time is missing
+        # Compose the ask from the FULL known state (date, time, gender) so a
+        # partial answer never gets the same message back verbatim — that
+        # reads to the user like a bug. Acknowledge everything we have, ask
+        # only for what's missing, and never re-ask for gender once given.
+        gender_known = _parse_gender(context.get("gender")) is not None
+        have = []
+        if birth_date is not None:
             nice = f"{birth_date.strftime('%B')} {birth_date.day}, {birth_date.year}"
-            text = (f"I have your birth date — **{nice}**. "
-                    "Now I just need your **time of birth** (e.g. 14:30 or 2:30 pm) — "
-                    "the hour sets one of the four pillars. If you'd like your "
-                    "decade luck cycles too, tell me whether to read them as "
-                    "male or female.")
-        else:
-            text = ("To cast your Four Pillars, I'll need your **exact birth date "
-                    "and time** (the hour matters — it sets one of the four "
-                    "pillars). If you'd like your decade luck cycles too, let me "
-                    "know whether to read them as male or female — the tradition "
-                    "calculates their direction from this.")
+            have.append(f"your birth date (**{nice}**)")
+        if gender_known:
+            have.append(f"your luck cycles set to **{context.get('gender')}**")
+
+        ask = []
+        if birth_date is None:
+            ask.append("your **exact birth date**")
+        if birth_time is None:
+            ask.append("your **time of birth** (e.g. 14:30 or 2:30 pm) — the "
+                       "hour sets one of the four pillars. If you don't know "
+                       "it, just say so and I'll cast a three-pillar reading")
+
+        text = ""
+        if have:
+            text += "I have " + " and ".join(have) + ". "
+        text += ("Now I just need " if have else
+                 "To cast your Four Pillars, I'll need ") + " and ".join(ask) + "."
+        if not gender_known:
+            text += (" If you'd like your decade luck cycles too, tell me "
+                     "whether to read them as male or female — the tradition "
+                     "calculates their direction from this.")
         return SpecialistReply(
             status="need_input",
             text=text,
             missing=missing,
         )
 
-    hour, minute = birth_time
+    if time_unknown:
+        hour, minute = 12, 0          # placeholder for the library call only;
+                                      # the hour pillar is excluded from output
+    else:
+        hour, minute = birth_time
     gender = _parse_gender(context.get("gender"))
 
     chart = calculate_bazi(birth_date.year, birth_date.month, birth_date.day,
-                           hour, minute, gender)
+                           hour, minute, gender, hour_known=not time_unknown)
 
     place = context.get("birth_place")
     place_line = f"\nBirth place: {place}" if place else ""

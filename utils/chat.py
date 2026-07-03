@@ -116,6 +116,11 @@ def _extract_time(message: str):
     return None
 _FEMALE_RE = re.compile(r"\b(female|woman|girl)\b", re.IGNORECASE)
 _MALE_RE = re.compile(r"\b(male|man|boy)\b", re.IGNORECASE)
+# "I don't know my birth time" — must co-mention time/hour so a tarot-style
+# "I don't know what to do" never trips it.
+_DONT_KNOW_RE = re.compile(r"\b(don'?t know|not sure|no idea|unknown|can'?t remember|unsure)\b",
+                           re.IGNORECASE)
+_TIME_WORD_RE = re.compile(r"\b(time|hour)\b", re.IGNORECASE)
 
 
 def capture_birth_details(user_id: str, message: str) -> dict:
@@ -132,6 +137,9 @@ def capture_birth_details(user_id: str, message: str) -> dict:
     t = _extract_time(message)
     if t:
         fields["birth_time"] = t
+    elif (_DONT_KNOW_RE.search(message) and _TIME_WORD_RE.search(message)
+          and not memory.get_profile(user_id).get("birth_time")):
+        fields["birth_time"] = "unknown"     # bazi casts a three-pillar reading
 
     # Check female before male so "female" doesn't trip the "male" pattern.
     if _FEMALE_RE.search(message):
