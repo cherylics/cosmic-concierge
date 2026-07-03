@@ -399,7 +399,7 @@ st.markdown(
         gap: 12px;
         margin-bottom: 20px;
         animation: fadeIn 0.4s ease;
-        scroll-margin-top: 150px; /* Offset scroll position by 150px to keep clear of fixed header */
+        scroll-margin-top: 210px; /* Offset scroll position to keep clear of fixed header + nav */
     }
     .msg-row.user { flex-direction: row-reverse; }
 
@@ -805,14 +805,23 @@ else:
         st.components.v1.html(
             """
             <script>
-            setTimeout(() => {
+            function scrollToLastAssistant() {
                 const doc = window.parent.document;
-                const msgRows = doc.querySelectorAll('.msg-row');
-                if (msgRows.length > 0) {
-                    const lastRow = msgRows[msgRows.length - 1];
-                    lastRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                const assistantRows = doc.querySelectorAll('.msg-row.assistant');
+                if (assistantRows.length > 0) {
+                    const lastAssistant = assistantRows[assistantRows.length - 1];
+                    lastAssistant.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    return true;
                 }
-            }, 100);
+                return false;
+            }
+            // First attempt after initial render
+            setTimeout(() => {
+                if (!scrollToLastAssistant()) {
+                    // Retry if DOM wasn't ready yet
+                    setTimeout(scrollToLastAssistant, 400);
+                }
+            }, 300);
             </script>
             """,
             height=0,
