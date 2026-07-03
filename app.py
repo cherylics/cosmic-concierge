@@ -806,22 +806,22 @@ else:
             """
             <script>
             function scrollToLastAssistant() {
-                const doc = window.parent.document;
+                const win = window.parent;
+                const doc = win.document;
                 const assistantRows = doc.querySelectorAll('.msg-row.assistant');
                 if (assistantRows.length > 0) {
                     const lastAssistant = assistantRows[assistantRows.length - 1];
-                    lastAssistant.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    return true;
+                    const rect = lastAssistant.getBoundingClientRect();
+                    const scrollTop = win.pageYOffset || doc.documentElement.scrollTop;
+                    const targetY = scrollTop + rect.top - 220;
+                    win.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
                 }
-                return false;
             }
-            // First attempt after initial render
-            setTimeout(() => {
-                if (!scrollToLastAssistant()) {
-                    // Retry if DOM wasn't ready yet
-                    setTimeout(scrollToLastAssistant, 400);
-                }
-            }, 300);
+            // Fire multiple times to override Streamlit's own auto-scroll-to-bottom
+            setTimeout(scrollToLastAssistant, 100);
+            setTimeout(scrollToLastAssistant, 300);
+            setTimeout(scrollToLastAssistant, 600);
+            setTimeout(scrollToLastAssistant, 1000);
             </script>
             """,
             height=0,
