@@ -399,7 +399,7 @@ st.markdown(
         gap: 12px;
         margin-bottom: 20px;
         animation: fadeIn 0.4s ease;
-        scroll-margin-top: 210px; /* Offset scroll position to keep clear of fixed header + nav */
+        scroll-margin-top: 120px; /* Offset scroll position to keep clear of fixed header + nav */
     }
     .msg-row.user { flex-direction: row-reverse; }
 
@@ -583,7 +583,7 @@ else:
             right: 0 !important;
             background: #faf9f7 !important;
             z-index: 99999 !important;
-            padding: 44px 0 16px 0 !important;
+            padding: 16px 0 8px 0 !important;
             text-align: center !important;
             width: 100% !important;
             max-width: 900px !important;
@@ -593,7 +593,7 @@ else:
         /* Fix the horizontal columns block right beneath the header text */
         div[data-testid="stHorizontalBlock"] {
             position: fixed !important;
-            top: 100px !important; /* sits directly below title container */
+            top: 56px !important; /* sits directly below title container */
             left: 0 !important;
             right: 0 !important;
             background: #faf9f7 !important;
@@ -601,7 +601,7 @@ else:
             width: 100% !important;
             max-width: 900px !important;
             margin: 0 auto !important;
-            padding: 6px 0 16px 0 !important;
+            padding: 4px 0 10px 0 !important;
             border-bottom: 1px solid #e8e4de !important;
             height: auto !important; /* Allow dynamic height so it never cuts off buttons */
         }
@@ -615,7 +615,7 @@ else:
         .chat-area {
             max-width: 620px;
             margin: 0 auto;
-            padding: 210px 0 40px 0 !important; /* Spacing for fixed header and nav tray */
+            padding: 120px 0 40px 0 !important; /* Spacing for fixed header and nav tray */
         }
 
         /* Center columns in the sticky nav block */
@@ -836,13 +836,13 @@ else:
                             targetTop += p.offsetTop;
                             p = p.offsetParent;
                         }
-                        scroller.scrollTop = Math.max(0, targetTop - 220);
+                        scroller.scrollTop = Math.max(0, targetTop - 120);
                     }
 
                     // Strategy 2: also scroll the window as fallback
                     var rect = target.getBoundingClientRect();
                     var scrollTop = win.pageYOffset || doc.documentElement.scrollTop;
-                    var targetY = Math.max(0, scrollTop + rect.top - 220);
+                    var targetY = Math.max(0, scrollTop + rect.top - 120);
                     win.scrollTo({ top: targetY, behavior: 'instant' });
                 }
 
