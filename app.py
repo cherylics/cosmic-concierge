@@ -809,29 +809,48 @@ else:
                 const win = window.parent;
                 const doc = win.document;
 
-                function getTargetY() {
-                    const rows = doc.querySelectorAll('.msg-row.assistant');
-                    if (rows.length === 0) return -1;
-                    const last = rows[rows.length - 1];
-                    const rect = last.getBoundingClientRect();
-                    const scrollTop = win.pageYOffset || doc.documentElement.scrollTop;
-                    return Math.max(0, scrollTop + rect.top - 220);
+                // Walk up the DOM to find the element that actually scrolls
+                function findScrollParent(el) {
+                    var p = el.parentElement;
+                    while (p && p !== doc.body && p !== doc.documentElement) {
+                        var style = win.getComputedStyle(p);
+                        if (/auto|scroll/.test(style.overflow + style.overflowY)) {
+                            if (p.scrollHeight > p.clientHeight) return p;
+                        }
+                        p = p.parentElement;
+                    }
+                    return null;
                 }
 
-                // Keep forcing scroll position every 50ms for 3s to beat
-                // Streamlit's own auto-scroll-to-bottom behaviour.
-                let n = 0;
-                const iv = setInterval(function() {
-                    const y = getTargetY();
-                    if (y >= 0) win.scrollTo({ top: y, behavior: 'instant' });
-                    if (++n >= 60) {            // 60 × 50 ms = 3 s
-                        clearInterval(iv);
-                        // One final smooth scroll for a polished landing
-                        setTimeout(function() {
-                            const y2 = getTargetY();
-                            if (y2 >= 0) win.scrollTo({ top: y2, behavior: 'smooth' });
-                        }, 100);
+                function doScroll() {
+                    var rows = doc.querySelectorAll('.msg-row.assistant');
+                    if (rows.length === 0) return;
+                    var target = rows[rows.length - 1];
+
+                    // Strategy 1: scroll the internal Streamlit container
+                    var scroller = findScrollParent(target);
+                    if (scroller) {
+                        var targetTop = target.offsetTop;
+                        var p = target.offsetParent;
+                        while (p && p !== scroller) {
+                            targetTop += p.offsetTop;
+                            p = p.offsetParent;
+                        }
+                        scroller.scrollTop = Math.max(0, targetTop - 220);
                     }
+
+                    // Strategy 2: also scroll the window as fallback
+                    var rect = target.getBoundingClientRect();
+                    var scrollTop = win.pageYOffset || doc.documentElement.scrollTop;
+                    var targetY = Math.max(0, scrollTop + rect.top - 220);
+                    win.scrollTo({ top: targetY, behavior: 'instant' });
+                }
+
+                // Keep forcing for 3 seconds to override Streamlit
+                var n = 0;
+                var iv = setInterval(function() {
+                    doScroll();
+                    if (++n >= 60) clearInterval(iv);
                 }, 50);
             })();
             </script>
